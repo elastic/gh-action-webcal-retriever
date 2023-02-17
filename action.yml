@@ -1,0 +1,13 @@
+name: WebCal Person Retriever
+author: AlexanderWert
+description: 'Reads person from current webcal event'
+inputs:
+  webcal_url:
+    description: 'URL of the web cal'
+    required: true
+outputs:
+  person_id:
+    description: 'File content'
+runs:
+  using: 'node16'
+  main: 'index.js'
