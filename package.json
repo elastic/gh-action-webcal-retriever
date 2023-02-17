@@ -8,5 +8,16 @@
     "@actions/core": "^1.10.0",
     "@actions/github": "5.0.1",
     "node-ical": "^0.15.3"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.5",
+    "@types/minimatch": "^5.1.2",
+    "@types/node": "^18.11.18",
+    "@vercel/ncc": "^0.36.1",
+    "typescript": "^4.9.4"
+  },
+  "scripts": {
+    "build": "ncc -m -o dist build index.js",
+    "types": "tsc --emitDeclarationOnly"
   }
 }
