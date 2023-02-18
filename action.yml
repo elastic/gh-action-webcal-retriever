@@ -8,6 +8,7 @@ inputs:
   days_offset:
     description: 'positive or negative number of days to add / subtract from current date'
     required: false
+    default: '0'
 outputs:
   person_id:
     description: 'File content'
