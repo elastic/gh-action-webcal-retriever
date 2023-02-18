@@ -14,8 +14,7 @@ const main = async () => {
       const startDate = Date.parse(event.start);
       const endDate = Date.parse(event.end);
       
-      const targetDate = Date.now();
-      targetDate.setDate(targetDate.getDate() + days_offset);
+      const targetDate = Date.now() + (days_offset * 24 * 60 * 60 * 1000);
       return startDate <= targetDate && targetDate <= endDate;
     })?.attendee;
   if (!person_id) {
