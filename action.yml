@@ -5,6 +5,9 @@ inputs:
   webcal_url:
     description: 'URL of the web cal'
     required: true
+  days_offset:
+    description: 'positive or negative number of days to add / subtract from current date'
+    required: false
 outputs:
   person_id:
     description: 'File content'
