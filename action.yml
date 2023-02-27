@@ -12,6 +12,10 @@ inputs:
 outputs:
   person_id:
     description: 'File content'
+  start_date:
+    description: 'The start date of the period.'
+  end_date:
+    description: 'The end date of the period.'
 runs:
   using: 'node16'
   main: 'dist/index.js'
