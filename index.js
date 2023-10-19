@@ -23,13 +23,15 @@ const main = async () => {
   const person_id = targetEvent?.attendee;
   const start = new Date(targetEvent?.start);
   const end = new Date(targetEvent?.end);
-  if (!person_id) {
-    throw Error('Could not find attendee for today!');
+  
+  if (!person_id || !start || !end) {
+    core.setOutput('success', false);
+  } else {
+    core.setOutput('success', true);
+    core.setOutput('person_id', person_id);
+    core.setOutput('start_date', dateFormat.format(start, 'MMM, DD'))
+    core.setOutput('end_date', dateFormat.format(end, 'MMM, DD'))
   }
-
-  core.setOutput('person_id', person_id);
-  core.setOutput('start_date', dateFormat.format(start, 'MMM, DD'))
-  core.setOutput('end_date', dateFormat.format(end, 'MMM, DD'))
 }
 
 main().catch(err => core.setFailed(err.message))
