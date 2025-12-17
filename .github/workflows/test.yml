@@ -22,5 +22,16 @@ jobs:
       - run: .github/workflows/replace_dates.sh > /tmp/oncall-calendar.ics
 
       - uses: ./
+        id: calendar
         with:
           webcal_url: file:///tmp/oncall-calendar.ics
+
+      - name: assert
+        run: |
+          test "${{ steps.calendar.outputs.success }}" = "true"
+          test -n "${{ steps.calendar.outputs.person_id }}"
+          test -n "${{ steps.calendar.outputs.start_date }}"
+          test -n "${{ steps.calendar.outputs.end_date }}"
+          echo "Person ID: ${{ steps.calendar.outputs.person_id }}"
+          echo "Start Date: ${{ steps.calendar.outputs.start_date }}"
+          echo "End Date: ${{ steps.calendar.outputs.end_date }}"
