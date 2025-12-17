@@ -9,7 +9,16 @@ const main = async () => {
   const days_offset = days_offset_str ? parseInt(days_offset_str) : 0;
   const webcal_url = core.getInput('webcal_url');
   const url = webcal_url.replace('webcal', 'https');
-  const webEvents = await ical.async.fromURL(url);
+  let webEvents;
+  if (webcal_url.startsWith('file://')) {
+    const filePath = webcal_url.replace('file://', '');
+    webEvents = ical.parseFile(filePath);
+  } else {
+    const url = webcal_url.startsWith('webcal://')
+      ? webcal_url.replace('webcal://', 'https://')
+      : webcal_url;
+    webEvents = await ical.async.fromURL(url);
+  }
   const targetEvent = Object.entries(webEvents)
     .map(([key, event]) => event)
     .find((event) => {
