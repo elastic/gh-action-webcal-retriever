@@ -8,7 +8,7 @@ const main = async () => {
   const days_offset_str = core.getInput('days_offset') ?? 0;
   const days_offset = days_offset_str ? parseInt(days_offset_str) : 0;
   const webcal_url = core.getInput('webcal_url');
-  const url = webcal_url.replace('webcal', 'https');
+  
   let webEvents;
   if (webcal_url.startsWith('file://')) {
     const filePath = webcal_url.replace('file://', '');
