@@ -13,7 +13,7 @@ outputs:
   success:
     description: 'Returns true if a person could have been retrieved successfully.'
   person_id:
-    description: 'File content'
+    description: 'The person'
   start_date:
     description: 'The start date of the period.'
   end_date:
