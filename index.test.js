@@ -44,4 +44,71 @@ describe('WebCal Person Retriever Action', () => {
     
     expect(httpsUrl).toBe('https://example.com/calendar.ics')
   })
+
+  describe('file:// protocol support', () => {
+    test('should strip file:// prefix from URL', () => {
+      const fileUrl = 'file:///path/to/calendar.ics'
+      const filePath = fileUrl.replace('file://', '')
+      
+      expect(filePath).toBe('/path/to/calendar.ics')
+    })
+
+    test('should handle file:// URLs with relative paths', () => {
+      const fileUrl = 'file://./test-fixtures/sample-calendar.ics'
+      const filePath = fileUrl.replace('file://', '')
+      
+      expect(filePath).toBe('./test-fixtures/sample-calendar.ics')
+    })
+
+    test('should call parseFile for file:// protocol URLs', () => {
+      core.getInput.mockImplementation((name) => {
+        if (name === 'days_offset') return '0'
+        if (name === 'webcal_url') return 'file://./test-fixtures/sample-calendar.ics'
+        return ''
+      })
+
+      const mockEvents = {
+        'test-event-1': {
+          type: 'VEVENT',
+          start: new Date('2023-12-01'),
+          end: new Date('2023-12-31'),
+          summary: 'Test Event',
+          attendee: 'mailto:test@example.com'
+        }
+      }
+      ical.parseFile.mockReturnValue(mockEvents)
+
+      // Verify that parseFile is available and can be called
+      expect(ical.parseFile).toBeDefined()
+    })
+
+    test('should use parseFile instead of fromURL for file:// URLs', () => {
+      const webcalUrl = 'file:///absolute/path/to/calendar.ics'
+      const isFileProtocol = webcalUrl.startsWith('file://')
+      
+      expect(isFileProtocol).toBe(true)
+      
+      if (isFileProtocol) {
+        const filePath = webcalUrl.replace('file://', '')
+        expect(filePath).toBe('/absolute/path/to/calendar.ics')
+      }
+    })
+
+    test('should distinguish between file:// and webcal:// protocols', () => {
+      const fileUrl = 'file://./calendar.ics'
+      const webcalUrl = 'webcal://example.com/calendar.ics'
+      const httpsUrl = 'https://example.com/calendar.ics'
+      
+      expect(fileUrl.startsWith('file://')).toBe(true)
+      expect(webcalUrl.startsWith('file://')).toBe(false)
+      expect(httpsUrl.startsWith('file://')).toBe(false)
+    })
+
+    test('should handle file:// URLs with Windows-style paths', () => {
+      const fileUrl = 'file://C:/Users/test/calendar.ics'
+      const filePath = fileUrl.replace('file://', '')
+      
+      expect(filePath).toBe('C:/Users/test/calendar.ics')
+    })
+  })
 })

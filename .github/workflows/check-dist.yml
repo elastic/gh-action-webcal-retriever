@@ -1,0 +1,15 @@
+name: Check dist
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  check-dist:
+    uses: actions/reusable-workflows/.github/workflows/check-dist.yml@main
+    with:
+      node-version: '20'

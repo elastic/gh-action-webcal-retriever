@@ -20,7 +20,7 @@ GitHub Action that reads the attendee for current date from a webcal
 | Name         | Description                                                     |
 |--------------|-----------------------------------------------------------------|
 | `success`    | Returns true if a person could have been retrieved successfully |
-| `person_id`  | File content                                                    |
+| `person_id`  | The Person.                                                     |
 | `start_date` | The start date of the period                                    |
 | `end_date`   | The end date of the period                                      |
 <!--/outputs-->
