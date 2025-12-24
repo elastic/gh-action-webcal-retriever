@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/js-yaml": "^4.0.5",
+    "@types/js-yaml": "^4.0.9",
     "@types/minimatch": "^6.0.0",
     "@types/node": "^18.11.18",
     "@vercel/ncc": "^0.36.1",
