@@ -7,7 +7,7 @@
   "dependencies": {
     "@actions/core": "^2.0.1",
     "@actions/github": "6.0.1",
-    "date-and-time": "^2.4.2",
+    "date-and-time": "^4.1.2",
     "node-ical": "^0.22.1"
   },
   "devDependencies": {
