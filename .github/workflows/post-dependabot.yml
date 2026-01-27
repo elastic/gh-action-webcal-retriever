@@ -31,8 +31,8 @@ jobs:
       - name: check for modified dist/index.js
         id: dist-check
         run: |
-          modified=true
-          if git diff --quiet HEAD -- dist/index.js; then
+          modified=false
+          if ! git diff --quiet HEAD -- dist/index.js; then
             modified=true
           fi
           echo "modified=$modified" >> $GITHUB_OUTPUT
