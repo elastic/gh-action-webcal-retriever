@@ -5,7 +5,7 @@
   "keywords": [],
   "license": "Apache Licence v2.0",
   "dependencies": {
-    "@actions/core": "^2.0.1",
+    "@actions/core": "^2.0.2",
     "@actions/github": "7.0.0",
     "date-and-time": "^2.4.2",
     "node-ical": "^0.23.1"
