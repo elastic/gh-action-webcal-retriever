@@ -1,0 +1,51 @@
+name: post-dependabot
+
+on:
+  push:
+    branches:
+      - "dependabot/npm_and_yarn/**"
+
+jobs:
+  update-dist:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: set up git user
+        uses: elastic/oblt-actions/git/setup@v1
+        with:
+          username: 'dependabot[bot]'
+          email: 'dependabot[bot]@users.noreply.github.com'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Update dist/index.js if necessary
+        run: npm run build
+
+      - name: check for modified dist/index.js
+        id: dist-check
+        run: |
+          modified=false
+          if ! git diff --quiet HEAD -- dist/index.js; then
+            modified=true
+          fi
+          echo "modified=$modified" >> $GITHUB_OUTPUT
+
+      - name: commit changed files
+        if: steps.dist-check.outputs.modified == 'true'
+        run: |
+          git add dist/index.js
+          git commit -m "Update dist/index.js"
+
+      - name: Push added commits
+        if: steps.dist-check.outputs.modified == 'true'
+        run: git push
