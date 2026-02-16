@@ -1,8 +1,6 @@
-'use strict'
-
-const core = require('@actions/core')
-const ical = require('node-ical');
-const dateFormat = require('date-and-time')
+import * as core from '@actions/core'
+import ical from 'node-ical'
+import * as dateFormat from 'date-and-time'
 
 const main = async () => {
   const days_offset_str = core.getInput('days_offset') ?? 0;
