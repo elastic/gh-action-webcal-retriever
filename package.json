@@ -7,7 +7,7 @@
   "license": "Apache Licence v2.0",
   "dependencies": {
     "@actions/core": "^3.0.0",
-    "@actions/github": "7.0.0",
+    "@actions/github": "9.0.0",
     "date-and-time": "^4.2.0",
     "node-ical": "^0.24.2"
   },
