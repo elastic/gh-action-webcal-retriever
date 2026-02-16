@@ -1,6 +1,7 @@
 {
   "name": "duty-gh-action",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "keywords": [],
   "license": "Apache Licence v2.0",
@@ -22,6 +23,6 @@
   "scripts": {
     "build": "ncc -m -o dist build index.js",
     "types": "tsc --emitDeclarationOnly",
-    "test": "jest"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   }
 }
