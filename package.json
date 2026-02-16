@@ -1,11 +1,12 @@
 {
   "name": "duty-gh-action",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "keywords": [],
   "license": "Apache Licence v2.0",
   "dependencies": {
-    "@actions/core": "^2.0.2",
+    "@actions/core": "^3.0.0",
     "@actions/github": "7.0.0",
     "date-and-time": "^4.2.0",
     "node-ical": "^0.24.2"
@@ -22,6 +23,6 @@
   "scripts": {
     "build": "ncc -m -o dist build index.js",
     "types": "tsc --emitDeclarationOnly",
-    "test": "jest"
+    "test": "NODE_OPTIONS='--experimental-vm-modules' npx jest"
   }
 }

@@ -1,11 +1,22 @@
-'use strict'
+import { jest, describe, test, expect, beforeEach } from '@jest/globals'
 
-const core = require('@actions/core')
-const ical = require('node-ical')
+jest.unstable_mockModule('@actions/core', () => ({
+  getInput: jest.fn(),
+  setOutput: jest.fn(),
+  setFailed: jest.fn(),
+}))
 
-// Mock dependencies
-jest.mock('@actions/core')
-jest.mock('node-ical')
+jest.unstable_mockModule('node-ical', () => ({
+  default: {
+    async: {
+      fromURL: jest.fn(),
+    },
+    parseFile: jest.fn(),
+  },
+}))
+
+const core = await import('@actions/core')
+const ical = (await import('node-ical')).default
 
 describe('WebCal Person Retriever Action', () => {
   beforeEach(() => {
