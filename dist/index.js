@@ -1,34 +1,2645 @@
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "module";
 /******/ var __webpack_modules__ = ({
 
-/***/ 7387:
+/***/ 1778:
+/***/ ((module) => {
+
+class JSBI extends Array{constructor(i,_){if(super(i),this.sign=_,Object.setPrototypeOf(this,JSBI.prototype),i>JSBI.__kMaxLength)throw new RangeError("Maximum BigInt size exceeded")}static BigInt(i){var _=Math.floor,t=Number.isFinite;if("number"==typeof i){if(0===i)return JSBI.__zero();if(JSBI.__isOneDigitInt(i))return 0>i?JSBI.__oneDigit(-i,!0):JSBI.__oneDigit(i,!1);if(!t(i)||_(i)!==i)throw new RangeError("The number "+i+" cannot be converted to BigInt because it is not an integer");return JSBI.__fromDouble(i)}if("string"==typeof i){const _=JSBI.__fromString(i);if(null===_)throw new SyntaxError("Cannot convert "+i+" to a BigInt");return _}if("boolean"==typeof i)return!0===i?JSBI.__oneDigit(1,!1):JSBI.__zero();if("object"==typeof i){if(i.constructor===JSBI)return i;const _=JSBI.__toPrimitive(i);return JSBI.BigInt(_)}throw new TypeError("Cannot convert "+i+" to a BigInt")}toDebugString(){const i=["BigInt["];for(const _ of this)i.push((_?(_>>>0).toString(16):_)+", ");return i.push("]"),i.join("")}toString(i=10){if(2>i||36<i)throw new RangeError("toString() radix argument must be between 2 and 36");return 0===this.length?"0":0==(i&i-1)?JSBI.__toStringBasePowerOfTwo(this,i):JSBI.__toStringGeneric(this,i,!1)}valueOf(){throw new Error("Convert JSBI instances to native numbers using `toNumber`.")}static toNumber(i){const _=i.length;if(0===_)return 0;if(1===_){const _=i.__unsignedDigit(0);return i.sign?-_:_}const t=i.__digit(_-1),e=JSBI.__clz30(t),n=30*_-e;if(1024<n)return i.sign?-Infinity:1/0;let g=n-1,o=t,s=_-1;const l=e+3;let r=32===l?0:o<<l;r>>>=12;const a=l-12;let u=12<=l?0:o<<20+l,d=20+l;for(0<a&&0<s&&(s--,o=i.__digit(s),r|=o>>>30-a,u=o<<a+2,d=a+2);0<d&&0<s;)s--,o=i.__digit(s),u|=30<=d?o<<d-30:o>>>30-d,d-=30;const h=JSBI.__decideRounding(i,d,s,o);if((1===h||0===h&&1==(1&u))&&(u=u+1>>>0,0===u&&(r++,0!=r>>>20&&(r=0,g++,1023<g))))return i.sign?-Infinity:1/0;const m=i.sign?-2147483648:0;return g=g+1023<<20,JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]=m|g|r,JSBI.__kBitConversionInts[JSBI.__kBitConversionIntLow]=u,JSBI.__kBitConversionDouble[0]}static unaryMinus(i){if(0===i.length)return i;const _=i.__copy();return _.sign=!i.sign,_}static bitwiseNot(i){return i.sign?JSBI.__absoluteSubOne(i).__trim():JSBI.__absoluteAddOne(i,!0)}static exponentiate(i,_){if(_.sign)throw new RangeError("Exponent must be positive");if(0===_.length)return JSBI.__oneDigit(1,!1);if(0===i.length)return i;if(1===i.length&&1===i.__digit(0))return i.sign&&0==(1&_.__digit(0))?JSBI.unaryMinus(i):i;if(1<_.length)throw new RangeError("BigInt too big");let t=_.__unsignedDigit(0);if(1===t)return i;if(t>=JSBI.__kMaxLengthBits)throw new RangeError("BigInt too big");if(1===i.length&&2===i.__digit(0)){const _=1+(0|t/30),e=i.sign&&0!=(1&t),n=new JSBI(_,e);n.__initializeDigits();const g=1<<t%30;return n.__setDigit(_-1,g),n}let e=null,n=i;for(0!=(1&t)&&(e=i),t>>=1;0!==t;t>>=1)n=JSBI.multiply(n,n),0!=(1&t)&&(null===e?e=n:e=JSBI.multiply(e,n));return e}static multiply(_,t){if(0===_.length)return _;if(0===t.length)return t;let i=_.length+t.length;30<=_.__clzmsd()+t.__clzmsd()&&i--;const e=new JSBI(i,_.sign!==t.sign);e.__initializeDigits();for(let n=0;n<_.length;n++)JSBI.__multiplyAccumulate(t,_.__digit(n),e,n);return e.__trim()}static divide(i,_){if(0===_.length)throw new RangeError("Division by zero");if(0>JSBI.__absoluteCompare(i,_))return JSBI.__zero();const t=i.sign!==_.sign,e=_.__unsignedDigit(0);let n;if(1===_.length&&32767>=e){if(1===e)return t===i.sign?i:JSBI.unaryMinus(i);n=JSBI.__absoluteDivSmall(i,e,null)}else n=JSBI.__absoluteDivLarge(i,_,!0,!1);return n.sign=t,n.__trim()}static remainder(i,_){if(0===_.length)throw new RangeError("Division by zero");if(0>JSBI.__absoluteCompare(i,_))return i;const t=_.__unsignedDigit(0);if(1===_.length&&32767>=t){if(1===t)return JSBI.__zero();const _=JSBI.__absoluteModSmall(i,t);return 0===_?JSBI.__zero():JSBI.__oneDigit(_,i.sign)}const e=JSBI.__absoluteDivLarge(i,_,!1,!0);return e.sign=i.sign,e.__trim()}static add(i,_){const t=i.sign;return t===_.sign?JSBI.__absoluteAdd(i,_,t):0<=JSBI.__absoluteCompare(i,_)?JSBI.__absoluteSub(i,_,t):JSBI.__absoluteSub(_,i,!t)}static subtract(i,_){const t=i.sign;return t===_.sign?0<=JSBI.__absoluteCompare(i,_)?JSBI.__absoluteSub(i,_,t):JSBI.__absoluteSub(_,i,!t):JSBI.__absoluteAdd(i,_,t)}static leftShift(i,_){return 0===_.length||0===i.length?i:_.sign?JSBI.__rightShiftByAbsolute(i,_):JSBI.__leftShiftByAbsolute(i,_)}static signedRightShift(i,_){return 0===_.length||0===i.length?i:_.sign?JSBI.__leftShiftByAbsolute(i,_):JSBI.__rightShiftByAbsolute(i,_)}static unsignedRightShift(){throw new TypeError("BigInts have no unsigned right shift; use >> instead")}static lessThan(i,_){return 0>JSBI.__compareToBigInt(i,_)}static lessThanOrEqual(i,_){return 0>=JSBI.__compareToBigInt(i,_)}static greaterThan(i,_){return 0<JSBI.__compareToBigInt(i,_)}static greaterThanOrEqual(i,_){return 0<=JSBI.__compareToBigInt(i,_)}static equal(_,t){if(_.sign!==t.sign)return!1;if(_.length!==t.length)return!1;for(let e=0;e<_.length;e++)if(_.__digit(e)!==t.__digit(e))return!1;return!0}static notEqual(i,_){return!JSBI.equal(i,_)}static bitwiseAnd(i,_){var t=Math.max;if(!i.sign&&!_.sign)return JSBI.__absoluteAnd(i,_).__trim();if(i.sign&&_.sign){const e=t(i.length,_.length)+1;let n=JSBI.__absoluteSubOne(i,e);const g=JSBI.__absoluteSubOne(_);return n=JSBI.__absoluteOr(n,g,n),JSBI.__absoluteAddOne(n,!0,n).__trim()}return i.sign&&([i,_]=[_,i]),JSBI.__absoluteAndNot(i,JSBI.__absoluteSubOne(_)).__trim()}static bitwiseXor(i,_){var t=Math.max;if(!i.sign&&!_.sign)return JSBI.__absoluteXor(i,_).__trim();if(i.sign&&_.sign){const e=t(i.length,_.length),n=JSBI.__absoluteSubOne(i,e),g=JSBI.__absoluteSubOne(_);return JSBI.__absoluteXor(n,g,n).__trim()}const e=t(i.length,_.length)+1;i.sign&&([i,_]=[_,i]);let n=JSBI.__absoluteSubOne(_,e);return n=JSBI.__absoluteXor(n,i,n),JSBI.__absoluteAddOne(n,!0,n).__trim()}static bitwiseOr(i,_){var t=Math.max;const e=t(i.length,_.length);if(!i.sign&&!_.sign)return JSBI.__absoluteOr(i,_).__trim();if(i.sign&&_.sign){let t=JSBI.__absoluteSubOne(i,e);const n=JSBI.__absoluteSubOne(_);return t=JSBI.__absoluteAnd(t,n,t),JSBI.__absoluteAddOne(t,!0,t).__trim()}i.sign&&([i,_]=[_,i]);let n=JSBI.__absoluteSubOne(_,e);return n=JSBI.__absoluteAndNot(n,i,n),JSBI.__absoluteAddOne(n,!0,n).__trim()}static asIntN(_,t){var i=Math.floor;if(0===t.length)return t;if(_=i(_),0>_)throw new RangeError("Invalid value: not (convertible to) a safe integer");if(0===_)return JSBI.__zero();if(_>=JSBI.__kMaxLengthBits)return t;const e=0|(_+29)/30;if(t.length<e)return t;const g=t.__unsignedDigit(e-1),o=1<<(_-1)%30;if(t.length===e&&g<o)return t;if(!((g&o)===o))return JSBI.__truncateToNBits(_,t);if(!t.sign)return JSBI.__truncateAndSubFromPowerOfTwo(_,t,!0);if(0==(g&o-1)){for(let n=e-2;0<=n;n--)if(0!==t.__digit(n))return JSBI.__truncateAndSubFromPowerOfTwo(_,t,!1);return t.length===e&&g===o?t:JSBI.__truncateToNBits(_,t)}return JSBI.__truncateAndSubFromPowerOfTwo(_,t,!1)}static asUintN(i,_){var t=Math.floor;if(0===_.length)return _;if(i=t(i),0>i)throw new RangeError("Invalid value: not (convertible to) a safe integer");if(0===i)return JSBI.__zero();if(_.sign){if(i>JSBI.__kMaxLengthBits)throw new RangeError("BigInt too big");return JSBI.__truncateAndSubFromPowerOfTwo(i,_,!1)}if(i>=JSBI.__kMaxLengthBits)return _;const e=0|(i+29)/30;if(_.length<e)return _;const g=i%30;if(_.length==e){if(0===g)return _;const i=_.__digit(e-1);if(0==i>>>g)return _}return JSBI.__truncateToNBits(i,_)}static ADD(i,_){if(i=JSBI.__toPrimitive(i),_=JSBI.__toPrimitive(_),"string"==typeof i)return"string"!=typeof _&&(_=_.toString()),i+_;if("string"==typeof _)return i.toString()+_;if(i=JSBI.__toNumeric(i),_=JSBI.__toNumeric(_),JSBI.__isBigInt(i)&&JSBI.__isBigInt(_))return JSBI.add(i,_);if("number"==typeof i&&"number"==typeof _)return i+_;throw new TypeError("Cannot mix BigInt and other types, use explicit conversions")}static LT(i,_){return JSBI.__compare(i,_,0)}static LE(i,_){return JSBI.__compare(i,_,1)}static GT(i,_){return JSBI.__compare(i,_,2)}static GE(i,_){return JSBI.__compare(i,_,3)}static EQ(i,_){for(;;){if(JSBI.__isBigInt(i))return JSBI.__isBigInt(_)?JSBI.equal(i,_):JSBI.EQ(_,i);if("number"==typeof i){if(JSBI.__isBigInt(_))return JSBI.__equalToNumber(_,i);if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("string"==typeof i){if(JSBI.__isBigInt(_))return i=JSBI.__fromString(i),null!==i&&JSBI.equal(i,_);if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("boolean"==typeof i){if(JSBI.__isBigInt(_))return JSBI.__equalToNumber(_,+i);if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("symbol"==typeof i){if(JSBI.__isBigInt(_))return!1;if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("object"==typeof i){if("object"==typeof _&&_.constructor!==JSBI)return i==_;i=JSBI.__toPrimitive(i)}else return i==_}}static NE(i,_){return!JSBI.EQ(i,_)}static DataViewGetBigInt64(i,_,t=!1){return JSBI.asIntN(64,JSBI.DataViewGetBigUint64(i,_,t))}static DataViewGetBigUint64(i,_,t=!1){const[e,n]=t?[4,0]:[0,4],g=i.getUint32(_+e,t),o=i.getUint32(_+n,t),s=new JSBI(3,!1);return s.__setDigit(0,1073741823&o),s.__setDigit(1,(268435455&g)<<2|o>>>30),s.__setDigit(2,g>>>28),s.__trim()}static DataViewSetBigInt64(i,_,t,e=!1){JSBI.DataViewSetBigUint64(i,_,t,e)}static DataViewSetBigUint64(i,_,t,e=!1){t=JSBI.asUintN(64,t);let n=0,g=0;if(0<t.length&&(g=t.__digit(0),1<t.length)){const i=t.__digit(1);g|=i<<30,n=i>>>2,2<t.length&&(n|=t.__digit(2)<<28)}const[o,s]=e?[4,0]:[0,4];i.setUint32(_+o,n,e),i.setUint32(_+s,g,e)}static __zero(){return new JSBI(0,!1)}static __oneDigit(i,_){const t=new JSBI(1,_);return t.__setDigit(0,i),t}__copy(){const _=new JSBI(this.length,this.sign);for(let t=0;t<this.length;t++)_[t]=this[t];return _}__trim(){let i=this.length,_=this[i-1];for(;0===_;)i--,_=this[i-1],this.pop();return 0===i&&(this.sign=!1),this}__initializeDigits(){for(let _=0;_<this.length;_++)this[_]=0}static __decideRounding(i,_,t,e){if(0<_)return-1;let n;if(0>_)n=-_-1;else{if(0===t)return-1;t--,e=i.__digit(t),n=29}let g=1<<n;if(0==(e&g))return-1;if(g-=1,0!=(e&g))return 1;for(;0<t;)if(t--,0!==i.__digit(t))return 1;return 0}static __fromDouble(i){JSBI.__kBitConversionDouble[0]=i;const _=2047&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]>>>20,t=_-1023,e=(0|t/30)+1,n=new JSBI(e,0>i);let g=1048575&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]|1048576,o=JSBI.__kBitConversionInts[JSBI.__kBitConversionIntLow];const s=20,l=t%30;let r,a=0;if(l<20){const i=s-l;a=i+32,r=g>>>i,g=g<<32-i|o>>>i,o<<=32-i}else if(l===20)a=32,r=g,g=o,o=0;else{const i=l-s;a=32-i,r=g<<i|o>>>32-i,g=o<<i,o=0}n.__setDigit(e-1,r);for(let _=e-2;0<=_;_--)0<a?(a-=30,r=g>>>2,g=g<<30|o>>>2,o<<=30):r=0,n.__setDigit(_,r);return n.__trim()}static __isWhitespace(i){return!!(13>=i&&9<=i)||(159>=i?32==i:131071>=i?160==i||5760==i:196607>=i?(i&=131071,10>=i||40==i||41==i||47==i||95==i||4096==i):65279==i)}static __fromString(i,_=0){let t=0;const e=i.length;let n=0;if(n===e)return JSBI.__zero();let g=i.charCodeAt(n);for(;JSBI.__isWhitespace(g);){if(++n===e)return JSBI.__zero();g=i.charCodeAt(n)}if(43===g){if(++n===e)return null;g=i.charCodeAt(n),t=1}else if(45===g){if(++n===e)return null;g=i.charCodeAt(n),t=-1}if(0===_){if(_=10,48===g){if(++n===e)return JSBI.__zero();if(g=i.charCodeAt(n),88===g||120===g){if(_=16,++n===e)return null;g=i.charCodeAt(n)}else if(79===g||111===g){if(_=8,++n===e)return null;g=i.charCodeAt(n)}else if(66===g||98===g){if(_=2,++n===e)return null;g=i.charCodeAt(n)}}}else if(16===_&&48===g){if(++n===e)return JSBI.__zero();if(g=i.charCodeAt(n),88===g||120===g){if(++n===e)return null;g=i.charCodeAt(n)}}if(0!=t&&10!==_)return null;for(;48===g;){if(++n===e)return JSBI.__zero();g=i.charCodeAt(n)}const o=e-n;let s=JSBI.__kMaxBitsPerChar[_],l=JSBI.__kBitsPerCharTableMultiplier-1;if(o>1073741824/s)return null;const r=s*o+l>>>JSBI.__kBitsPerCharTableShift,a=new JSBI(0|(r+29)/30,!1),u=10>_?_:10,h=10<_?_-10:0;if(0==(_&_-1)){s>>=JSBI.__kBitsPerCharTableShift;const _=[],t=[];let o=!1;do{let l=0,r=0;for(;;){let _;if(g-48>>>0<u)_=g-48;else if((32|g)-97>>>0<h)_=(32|g)-87;else{o=!0;break}if(r+=s,l=l<<s|_,++n===e){o=!0;break}if(g=i.charCodeAt(n),30<r+s)break}_.push(l),t.push(r)}while(!o);JSBI.__fillFromParts(a,_,t)}else{a.__initializeDigits();let t=!1,o=0;do{let r=0,b=1;for(;;){let s;if(g-48>>>0<u)s=g-48;else if((32|g)-97>>>0<h)s=(32|g)-87;else{t=!0;break}const l=b*_;if(1073741823<l)break;if(b=l,r=r*_+s,o++,++n===e){t=!0;break}g=i.charCodeAt(n)}l=30*JSBI.__kBitsPerCharTableMultiplier-1;const D=0|(s*o+l>>>JSBI.__kBitsPerCharTableShift)/30;a.__inplaceMultiplyAdd(b,r,D)}while(!t)}if(n!==e){if(!JSBI.__isWhitespace(g))return null;for(n++;n<e;n++)if(g=i.charCodeAt(n),!JSBI.__isWhitespace(g))return null}return a.sign=-1==t,a.__trim()}static __fillFromParts(_,t,e){let n=0,g=0,o=0;for(let s=t.length-1;0<=s;s--){const i=t[s],l=e[s];g|=i<<o,o+=l,30===o?(_.__setDigit(n++,g),o=0,g=0):30<o&&(_.__setDigit(n++,1073741823&g),o-=30,g=i>>>l-o)}if(0!==g){if(n>=_.length)throw new Error("implementation bug");_.__setDigit(n++,g)}for(;n<_.length;n++)_.__setDigit(n,0)}static __toStringBasePowerOfTwo(_,i){const t=_.length;let e=i-1;e=(85&e>>>1)+(85&e),e=(51&e>>>2)+(51&e),e=(15&e>>>4)+(15&e);const n=e,g=i-1,o=_.__digit(t-1),s=JSBI.__clz30(o);let l=0|(30*t-s+n-1)/n;if(_.sign&&l++,268435456<l)throw new Error("string too long");const r=Array(l);let a=l-1,u=0,d=0;for(let e=0;e<t-1;e++){const i=_.__digit(e),t=(u|i<<d)&g;r[a--]=JSBI.__kConversionChars[t];const o=n-d;for(u=i>>>o,d=30-o;d>=n;)r[a--]=JSBI.__kConversionChars[u&g],u>>>=n,d-=n}const h=(u|o<<d)&g;for(r[a--]=JSBI.__kConversionChars[h],u=o>>>n-d;0!==u;)r[a--]=JSBI.__kConversionChars[u&g],u>>>=n;if(_.sign&&(r[a--]="-"),-1!=a)throw new Error("implementation bug");return r.join("")}static __toStringGeneric(_,i,t){const e=_.length;if(0===e)return"";if(1===e){let e=_.__unsignedDigit(0).toString(i);return!1===t&&_.sign&&(e="-"+e),e}const n=30*e-JSBI.__clz30(_.__digit(e-1)),g=JSBI.__kMaxBitsPerChar[i],o=g-1;let s=n*JSBI.__kBitsPerCharTableMultiplier;s+=o-1,s=0|s/o;const l=s+1>>1,r=JSBI.exponentiate(JSBI.__oneDigit(i,!1),JSBI.__oneDigit(l,!1));let a,u;const d=r.__unsignedDigit(0);if(1===r.length&&32767>=d){a=new JSBI(_.length,!1),a.__initializeDigits();let t=0;for(let e=2*_.length-1;0<=e;e--){const i=t<<15|_.__halfDigit(e);a.__setHalfDigit(e,0|i/d),t=0|i%d}u=t.toString(i)}else{const t=JSBI.__absoluteDivLarge(_,r,!0,!0);a=t.quotient;const e=t.remainder.__trim();u=JSBI.__toStringGeneric(e,i,!0)}a.__trim();let h=JSBI.__toStringGeneric(a,i,!0);for(;u.length<l;)u="0"+u;return!1===t&&_.sign&&(h="-"+h),h+u}static __unequalSign(i){return i?-1:1}static __absoluteGreater(i){return i?-1:1}static __absoluteLess(i){return i?1:-1}static __compareToBigInt(i,_){const t=i.sign;if(t!==_.sign)return JSBI.__unequalSign(t);const e=JSBI.__absoluteCompare(i,_);return 0<e?JSBI.__absoluteGreater(t):0>e?JSBI.__absoluteLess(t):0}static __compareToNumber(i,_){if(JSBI.__isOneDigitInt(_)){const t=i.sign,e=0>_;if(t!==e)return JSBI.__unequalSign(t);if(0===i.length){if(e)throw new Error("implementation bug");return 0===_?0:-1}if(1<i.length)return JSBI.__absoluteGreater(t);const n=Math.abs(_),g=i.__unsignedDigit(0);return g>n?JSBI.__absoluteGreater(t):g<n?JSBI.__absoluteLess(t):0}return JSBI.__compareToDouble(i,_)}static __compareToDouble(i,_){if(_!==_)return _;if(_===1/0)return-1;if(_===-Infinity)return 1;const t=i.sign;if(t!==0>_)return JSBI.__unequalSign(t);if(0===_)throw new Error("implementation bug: should be handled elsewhere");if(0===i.length)return-1;JSBI.__kBitConversionDouble[0]=_;const e=2047&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]>>>20;if(2047==e)throw new Error("implementation bug: handled elsewhere");const n=e-1023;if(0>n)return JSBI.__absoluteGreater(t);const g=i.length;let o=i.__digit(g-1);const s=JSBI.__clz30(o),l=30*g-s,r=n+1;if(l<r)return JSBI.__absoluteLess(t);if(l>r)return JSBI.__absoluteGreater(t);let a=1048576|1048575&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh],u=JSBI.__kBitConversionInts[JSBI.__kBitConversionIntLow];const d=20,h=29-s;if(h!==(0|(l-1)%30))throw new Error("implementation bug");let m,b=0;if(20>h){const i=d-h;b=i+32,m=a>>>i,a=a<<32-i|u>>>i,u<<=32-i}else if(20===h)b=32,m=a,a=u,u=0;else{const i=h-d;b=32-i,m=a<<i|u>>>32-i,a=u<<i,u=0}if(o>>>=0,m>>>=0,o>m)return JSBI.__absoluteGreater(t);if(o<m)return JSBI.__absoluteLess(t);for(let e=g-2;0<=e;e--){0<b?(b-=30,m=a>>>2,a=a<<30|u>>>2,u<<=30):m=0;const _=i.__unsignedDigit(e);if(_>m)return JSBI.__absoluteGreater(t);if(_<m)return JSBI.__absoluteLess(t)}if(0!==a||0!==u){if(0===b)throw new Error("implementation bug");return JSBI.__absoluteLess(t)}return 0}static __equalToNumber(i,_){var t=Math.abs;return JSBI.__isOneDigitInt(_)?0===_?0===i.length:1===i.length&&i.sign===0>_&&i.__unsignedDigit(0)===t(_):0===JSBI.__compareToDouble(i,_)}static __comparisonResultToBool(i,_){return 0===_?0>i:1===_?0>=i:2===_?0<i:3===_?0<=i:void 0}static __compare(i,_,t){if(i=JSBI.__toPrimitive(i),_=JSBI.__toPrimitive(_),"string"==typeof i&&"string"==typeof _)switch(t){case 0:return i<_;case 1:return i<=_;case 2:return i>_;case 3:return i>=_}if(JSBI.__isBigInt(i)&&"string"==typeof _)return _=JSBI.__fromString(_),null!==_&&JSBI.__comparisonResultToBool(JSBI.__compareToBigInt(i,_),t);if("string"==typeof i&&JSBI.__isBigInt(_))return i=JSBI.__fromString(i),null!==i&&JSBI.__comparisonResultToBool(JSBI.__compareToBigInt(i,_),t);if(i=JSBI.__toNumeric(i),_=JSBI.__toNumeric(_),JSBI.__isBigInt(i)){if(JSBI.__isBigInt(_))return JSBI.__comparisonResultToBool(JSBI.__compareToBigInt(i,_),t);if("number"!=typeof _)throw new Error("implementation bug");return JSBI.__comparisonResultToBool(JSBI.__compareToNumber(i,_),t)}if("number"!=typeof i)throw new Error("implementation bug");if(JSBI.__isBigInt(_))return JSBI.__comparisonResultToBool(JSBI.__compareToNumber(_,i),2^t);if("number"!=typeof _)throw new Error("implementation bug");return 0===t?i<_:1===t?i<=_:2===t?i>_:3===t?i>=_:void 0}__clzmsd(){return JSBI.__clz30(this.__digit(this.length-1))}static __absoluteAdd(_,t,e){if(_.length<t.length)return JSBI.__absoluteAdd(t,_,e);if(0===_.length)return _;if(0===t.length)return _.sign===e?_:JSBI.unaryMinus(_);let n=_.length;(0===_.__clzmsd()||t.length===_.length&&0===t.__clzmsd())&&n++;const g=new JSBI(n,e);let o=0,s=0;for(;s<t.length;s++){const i=_.__digit(s)+t.__digit(s)+o;o=i>>>30,g.__setDigit(s,1073741823&i)}for(;s<_.length;s++){const i=_.__digit(s)+o;o=i>>>30,g.__setDigit(s,1073741823&i)}return s<g.length&&g.__setDigit(s,o),g.__trim()}static __absoluteSub(_,t,e){if(0===_.length)return _;if(0===t.length)return _.sign===e?_:JSBI.unaryMinus(_);const n=new JSBI(_.length,e);let g=0,o=0;for(;o<t.length;o++){const i=_.__digit(o)-t.__digit(o)-g;g=1&i>>>30,n.__setDigit(o,1073741823&i)}for(;o<_.length;o++){const i=_.__digit(o)-g;g=1&i>>>30,n.__setDigit(o,1073741823&i)}return n.__trim()}static __absoluteAddOne(_,i,t=null){const e=_.length;null===t?t=new JSBI(e,i):t.sign=i;let n=1;for(let g=0;g<e;g++){const i=_.__digit(g)+n;n=i>>>30,t.__setDigit(g,1073741823&i)}return 0!=n&&t.__setDigitGrow(e,1),t}static __absoluteSubOne(_,t){const e=_.length;t=t||e;const n=new JSBI(t,!1);let g=1;for(let o=0;o<e;o++){const i=_.__digit(o)-g;g=1&i>>>30,n.__setDigit(o,1073741823&i)}if(0!=g)throw new Error("implementation bug");for(let g=e;g<t;g++)n.__setDigit(g,0);return n}static __absoluteAnd(_,t,e=null){let n=_.length,g=t.length,o=g;if(n<g){o=n;const i=_,e=n;_=t,n=g,t=i,g=e}let s=o;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)&t.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteAndNot(_,t,e=null){const n=_.length,g=t.length;let o=g;n<g&&(o=n);let s=n;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)&~t.__digit(l));for(;l<n;l++)e.__setDigit(l,_.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteOr(_,t,e=null){let n=_.length,g=t.length,o=g;if(n<g){o=n;const i=_,e=n;_=t,n=g,t=i,g=e}let s=n;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)|t.__digit(l));for(;l<n;l++)e.__setDigit(l,_.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteXor(_,t,e=null){let n=_.length,g=t.length,o=g;if(n<g){o=n;const i=_,e=n;_=t,n=g,t=i,g=e}let s=n;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)^t.__digit(l));for(;l<n;l++)e.__setDigit(l,_.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteCompare(_,t){const e=_.length-t.length;if(0!=e)return e;let n=_.length-1;for(;0<=n&&_.__digit(n)===t.__digit(n);)n--;return 0>n?0:_.__unsignedDigit(n)>t.__unsignedDigit(n)?1:-1}static __multiplyAccumulate(_,t,e,n){if(0===t)return;const g=32767&t,o=t>>>15;let s=0,l=0;for(let r,a=0;a<_.length;a++,n++){r=e.__digit(n);const i=_.__digit(a),t=32767&i,u=i>>>15,d=JSBI.__imul(t,g),h=JSBI.__imul(t,o),m=JSBI.__imul(u,g),b=JSBI.__imul(u,o);r+=l+d+s,s=r>>>30,r&=1073741823,r+=((32767&h)<<15)+((32767&m)<<15),s+=r>>>30,l=b+(h>>>15)+(m>>>15),e.__setDigit(n,1073741823&r)}for(;0!=s||0!==l;n++){let i=e.__digit(n);i+=s+l,l=0,s=i>>>30,e.__setDigit(n,1073741823&i)}}static __internalMultiplyAdd(_,t,e,g,o){let s=e,l=0;for(let n=0;n<g;n++){const i=_.__digit(n),e=JSBI.__imul(32767&i,t),g=JSBI.__imul(i>>>15,t),a=e+((32767&g)<<15)+l+s;s=a>>>30,l=g>>>15,o.__setDigit(n,1073741823&a)}if(o.length>g)for(o.__setDigit(g++,s+l);g<o.length;)o.__setDigit(g++,0);else if(0!==s+l)throw new Error("implementation bug")}__inplaceMultiplyAdd(i,_,t){t>this.length&&(t=this.length);const e=32767&i,n=i>>>15;let g=0,o=_;for(let s=0;s<t;s++){const i=this.__digit(s),_=32767&i,t=i>>>15,l=JSBI.__imul(_,e),r=JSBI.__imul(_,n),a=JSBI.__imul(t,e),u=JSBI.__imul(t,n);let d=o+l+g;g=d>>>30,d&=1073741823,d+=((32767&r)<<15)+((32767&a)<<15),g+=d>>>30,o=u+(r>>>15)+(a>>>15),this.__setDigit(s,1073741823&d)}if(0!=g||0!==o)throw new Error("implementation bug")}static __absoluteDivSmall(_,t,e=null){null===e&&(e=new JSBI(_.length,!1));let n=0;for(let g,o=2*_.length-1;0<=o;o-=2){g=(n<<15|_.__halfDigit(o))>>>0;const i=0|g/t;n=0|g%t,g=(n<<15|_.__halfDigit(o-1))>>>0;const s=0|g/t;n=0|g%t,e.__setDigit(o>>>1,i<<15|s)}return e}static __absoluteModSmall(_,t){let e=0;for(let n=2*_.length-1;0<=n;n--){const i=(e<<15|_.__halfDigit(n))>>>0;e=0|i%t}return e}static __absoluteDivLarge(i,_,t,e){const g=_.__halfDigitLength(),n=_.length,o=i.__halfDigitLength()-g;let s=null;t&&(s=new JSBI(o+2>>>1,!1),s.__initializeDigits());const l=new JSBI(g+2>>>1,!1);l.__initializeDigits();const r=JSBI.__clz15(_.__halfDigit(g-1));0<r&&(_=JSBI.__specialLeftShift(_,r,0));const a=JSBI.__specialLeftShift(i,r,1),u=_.__halfDigit(g-1);let d=0;for(let r,h=o;0<=h;h--){r=32767;const i=a.__halfDigit(h+g);if(i!==u){const t=(i<<15|a.__halfDigit(h+g-1))>>>0;r=0|t/u;let e=0|t%u;const n=_.__halfDigit(g-2),o=a.__halfDigit(h+g-2);for(;JSBI.__imul(r,n)>>>0>(e<<16|o)>>>0&&(r--,e+=u,!(32767<e)););}JSBI.__internalMultiplyAdd(_,r,0,n,l);let e=a.__inplaceSub(l,h,g+1);0!==e&&(e=a.__inplaceAdd(_,h,g),a.__setHalfDigit(h+g,32767&a.__halfDigit(h+g)+e),r--),t&&(1&h?d=r<<15:s.__setDigit(h>>>1,d|r))}if(e)return a.__inplaceRightShift(r),t?{quotient:s,remainder:a}:a;if(t)return s;throw new Error("unreachable")}static __clz15(i){return JSBI.__clz30(i)-15}__inplaceAdd(_,t,e){let n=0;for(let g=0;g<e;g++){const i=this.__halfDigit(t+g)+_.__halfDigit(g)+n;n=i>>>15,this.__setHalfDigit(t+g,32767&i)}return n}__inplaceSub(_,t,e){let n=0;if(1&t){t>>=1;let g=this.__digit(t),o=32767&g,s=0;for(;s<e-1>>>1;s++){const i=_.__digit(s),e=(g>>>15)-(32767&i)-n;n=1&e>>>15,this.__setDigit(t+s,(32767&e)<<15|32767&o),g=this.__digit(t+s+1),o=(32767&g)-(i>>>15)-n,n=1&o>>>15}const i=_.__digit(s),l=(g>>>15)-(32767&i)-n;n=1&l>>>15,this.__setDigit(t+s,(32767&l)<<15|32767&o);if(t+s+1>=this.length)throw new RangeError("out of bounds");0==(1&e)&&(g=this.__digit(t+s+1),o=(32767&g)-(i>>>15)-n,n=1&o>>>15,this.__setDigit(t+_.length,1073709056&g|32767&o))}else{t>>=1;let g=0;for(;g<_.length-1;g++){const i=this.__digit(t+g),e=_.__digit(g),o=(32767&i)-(32767&e)-n;n=1&o>>>15;const s=(i>>>15)-(e>>>15)-n;n=1&s>>>15,this.__setDigit(t+g,(32767&s)<<15|32767&o)}const i=this.__digit(t+g),o=_.__digit(g),s=(32767&i)-(32767&o)-n;n=1&s>>>15;let l=0;0==(1&e)&&(l=(i>>>15)-(o>>>15)-n,n=1&l>>>15),this.__setDigit(t+g,(32767&l)<<15|32767&s)}return n}__inplaceRightShift(_){if(0===_)return;let t=this.__digit(0)>>>_;const e=this.length-1;for(let n=0;n<e;n++){const i=this.__digit(n+1);this.__setDigit(n,1073741823&i<<30-_|t),t=i>>>_}this.__setDigit(e,t)}static __specialLeftShift(_,t,e){const g=_.length,n=new JSBI(g+e,!1);if(0===t){for(let t=0;t<g;t++)n.__setDigit(t,_.__digit(t));return 0<e&&n.__setDigit(g,0),n}let o=0;for(let s=0;s<g;s++){const i=_.__digit(s);n.__setDigit(s,1073741823&i<<t|o),o=i>>>30-t}return 0<e&&n.__setDigit(g,o),n}static __leftShiftByAbsolute(_,i){const t=JSBI.__toShiftAmount(i);if(0>t)throw new RangeError("BigInt too big");const e=0|t/30,n=t%30,g=_.length,o=0!==n&&0!=_.__digit(g-1)>>>30-n,s=g+e+(o?1:0),l=new JSBI(s,_.sign);if(0===n){let t=0;for(;t<e;t++)l.__setDigit(t,0);for(;t<s;t++)l.__setDigit(t,_.__digit(t-e))}else{let t=0;for(let _=0;_<e;_++)l.__setDigit(_,0);for(let o=0;o<g;o++){const i=_.__digit(o);l.__setDigit(o+e,1073741823&i<<n|t),t=i>>>30-n}if(o)l.__setDigit(g+e,t);else if(0!==t)throw new Error("implementation bug")}return l.__trim()}static __rightShiftByAbsolute(_,i){const t=_.length,e=_.sign,n=JSBI.__toShiftAmount(i);if(0>n)return JSBI.__rightShiftByMaximum(e);const g=0|n/30,o=n%30;let s=t-g;if(0>=s)return JSBI.__rightShiftByMaximum(e);let l=!1;if(e){if(0!=(_.__digit(g)&(1<<o)-1))l=!0;else for(let t=0;t<g;t++)if(0!==_.__digit(t)){l=!0;break}}if(l&&0===o){const i=_.__digit(t-1);0==~i&&s++}let r=new JSBI(s,e);if(0===o){r.__setDigit(s-1,0);for(let e=g;e<t;e++)r.__setDigit(e-g,_.__digit(e))}else{let e=_.__digit(g)>>>o;const n=t-g-1;for(let t=0;t<n;t++){const i=_.__digit(t+g+1);r.__setDigit(t,1073741823&i<<30-o|e),e=i>>>o}r.__setDigit(n,e)}return l&&(r=JSBI.__absoluteAddOne(r,!0,r)),r.__trim()}static __rightShiftByMaximum(i){return i?JSBI.__oneDigit(1,!0):JSBI.__zero()}static __toShiftAmount(i){if(1<i.length)return-1;const _=i.__unsignedDigit(0);return _>JSBI.__kMaxLengthBits?-1:_}static __toPrimitive(i,_="default"){if("object"!=typeof i)return i;if(i.constructor===JSBI)return i;if("undefined"!=typeof Symbol&&"symbol"==typeof Symbol.toPrimitive&&i[Symbol.toPrimitive]){const t=i[Symbol.toPrimitive](_);if("object"!=typeof t)return t;throw new TypeError("Cannot convert object to primitive value")}const t=i.valueOf;if(t){const _=t.call(i);if("object"!=typeof _)return _}const e=i.toString;if(e){const _=e.call(i);if("object"!=typeof _)return _}throw new TypeError("Cannot convert object to primitive value")}static __toNumeric(i){return JSBI.__isBigInt(i)?i:+i}static __isBigInt(i){return"object"==typeof i&&null!==i&&i.constructor===JSBI}static __truncateToNBits(i,_){const t=0|(i+29)/30,e=new JSBI(t,_.sign),n=t-1;for(let t=0;t<n;t++)e.__setDigit(t,_.__digit(t));let g=_.__digit(n);if(0!=i%30){const _=32-i%30;g=g<<_>>>_}return e.__setDigit(n,g),e.__trim()}static __truncateAndSubFromPowerOfTwo(_,t,e){var n=Math.min;const g=0|(_+29)/30,o=new JSBI(g,e);let s=0;const l=g-1;let a=0;for(const i=n(l,t.length);s<i;s++){const i=0-t.__digit(s)-a;a=1&i>>>30,o.__setDigit(s,1073741823&i)}for(;s<l;s++)o.__setDigit(s,0|1073741823&-a);let u=l<t.length?t.__digit(l):0;const d=_%30;let h;if(0==d)h=0-u-a,h&=1073741823;else{const i=32-d;u=u<<i>>>i;const _=1<<32-i;h=_-u-a,h&=_-1}return o.__setDigit(l,h),o.__trim()}__digit(_){return this[_]}__unsignedDigit(_){return this[_]>>>0}__setDigit(_,i){this[_]=0|i}__setDigitGrow(_,i){this[_]=0|i}__halfDigitLength(){const i=this.length;return 32767>=this.__unsignedDigit(i-1)?2*i-1:2*i}__halfDigit(_){return 32767&this[_>>>1]>>>15*(1&_)}__setHalfDigit(_,i){const t=_>>>1,e=this.__digit(t),n=1&_?32767&e|i<<15:1073709056&e|32767&i;this.__setDigit(t,n)}static __digitPow(i,_){let t=1;for(;0<_;)1&_&&(t*=i),_>>>=1,i*=i;return t}static __detectBigEndian(){return JSBI.__kBitConversionDouble[0]=-0,0!==JSBI.__kBitConversionInts[0]}static __isOneDigitInt(i){return(1073741823&i)===i}}JSBI.__kMaxLength=33554432,JSBI.__kMaxLengthBits=JSBI.__kMaxLength<<5,JSBI.__kMaxBitsPerChar=[0,0,32,51,64,75,83,90,96,102,107,111,115,119,122,126,128,131,134,136,139,141,143,145,147,149,151,153,154,156,158,159,160,162,163,165,166],JSBI.__kBitsPerCharTableShift=5,JSBI.__kBitsPerCharTableMultiplier=1<<JSBI.__kBitsPerCharTableShift,JSBI.__kConversionChars=["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"],JSBI.__kBitConversionBuffer=new ArrayBuffer(8),JSBI.__kBitConversionDouble=new Float64Array(JSBI.__kBitConversionBuffer),JSBI.__kBitConversionInts=new Int32Array(JSBI.__kBitConversionBuffer),JSBI.__kBitConversionIntHigh=JSBI.__detectBigEndian()?0:1,JSBI.__kBitConversionIntLow=JSBI.__detectBigEndian()?1:0,JSBI.__clz30=Math.clz32?function(i){return Math.clz32(i)-2}:function(i){return 0===i?30:0|29-(0|Math.log(i>>>0)/Math.LN2)},JSBI.__imul=Math.imul||function(i,_){return 0|i*_},module.exports=JSBI;
+//# sourceMappingURL=jsbi-cjs.js.map
+
+
+/***/ }),
+
+/***/ 6454:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+/* eslint-disable max-depth, max-params, no-warning-comments, complexity, import-x/order */
+
+const {randomUUID} = __nccwpck_require__(6005);
+
+// Load Temporal polyfill if not natively available
+// TODO: Drop the polyfill branch once our minimum Node version ships Temporal
+const Temporal = globalThis.Temporal || (__nccwpck_require__(1763).Temporal);
+// Ensure Temporal exists before loading rrule-temporal
+globalThis.Temporal ??= Temporal;
+
+const {RRuleTemporal} = __nccwpck_require__(1835);
+const {toText: toTextFunction} = __nccwpck_require__(2336);
+const tzUtil = __nccwpck_require__(5108);
+
+/**
+ * Construct a date-only key (YYYY-MM-DD) from a Date object.
+ * For date-only events, uses local date components to avoid timezone shifts.
+ * For date-time events, extracts the date portion from the ISO timestamp.
+ * @param {Date} dateValue - Date object with optional dateOnly property
+ * @returns {string} Date key in YYYY-MM-DD format
+ */
+const getDateKey = function (dateValue) {
+  if (dateValue.dateOnly) {
+    return `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
+  }
+
+  return dateValue.toISOString().slice(0, 10);
+};
+
+/**
+ * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
+ * This maintains backward compatibility while using rrule-temporal internally
+ */
+class RRuleCompatWrapper {
+  constructor(rruleTemporal) {
+    this._rrule = rruleTemporal;
+  }
+
+  static #temporalToDate(value) {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(item => RRuleCompatWrapper.#temporalToDate(item));
+    }
+
+    // Convert known Temporal instances to Date
+    if (typeof value === 'object' && !(value instanceof Date) && typeof value.epochMilliseconds === 'number') {
+      return new Date(value.epochMilliseconds);
+    }
+
+    return value;
+  }
+
+  #serializeOptions() {
+    const raw = this._rrule.options();
+    const converted = {};
+
+    for (const [key, value] of Object.entries(raw)) {
+      converted[key] = RRuleCompatWrapper.#temporalToDate(value);
+    }
+
+    // Map rrule-temporal `byDay` to legacy `byweekday`
+    if (converted.byweekday === undefined && raw.byDay !== undefined) {
+      converted.byweekday = RRuleCompatWrapper.#temporalToDate(raw.byDay);
+    }
+
+    return converted;
+  }
+
+  between(after, before, inclusive = false) {
+    const results = this._rrule.between(after, before, inclusive);
+    // Convert Temporal.ZonedDateTime → Date
+    return results.map(zdt => new Date(zdt.epochMilliseconds));
+  }
+
+  all(iterator) {
+    const results = this._rrule.all(iterator);
+    return results.map(zdt => new Date(zdt.epochMilliseconds));
+  }
+
+  before(date, inclusive = false) {
+    const result = this._rrule.before(date, inclusive);
+    return result ? new Date(result.epochMilliseconds) : null;
+  }
+
+  after(date, inclusive = false) {
+    const result = this._rrule.after(date, inclusive);
+    return result ? new Date(result.epochMilliseconds) : null;
+  }
+
+  toText(locale) {
+    return toTextFunction(this._rrule, locale);
+  }
+
+  // Delegate other methods
+  toString() {
+    return this._rrule.toString();
+  }
+
+  // Expose options as a property for compatibility with the old rrule.js API
+  // (the wrapper hides the underlying method-based interface)
+  get options() {
+    return this.#serializeOptions();
+  }
+
+  // OrigOptions: the original options as passed to the constructor (before processing).
+  // In rrule.js, this was used for toString() and clone() operations.
+  // For rrule-temporal, options() already returns the unprocessed original options,
+  // so origOptions and options are equivalent.
+  get origOptions() {
+    return this.#serializeOptions();
+  }
+}
+
+/** **************
+ *  A tolerant, minimal icalendar parser
+ *  (http://tools.ietf.org/html/rfc5545)
+ *
+ *  <peterbraden@peterbraden.co.uk>
+ * ************* */
+
+// Unescape Text re RFC 4.3.11
+const text = function (t = '') {
+  return t
+    .replaceAll(String.raw`\,`, ',') // Unescape escaped commas
+    .replaceAll(String.raw`\;`, ';') // Unescape escaped semicolons
+    .replaceAll(/\\[nN]/g, '\n') // Replace escaped newlines with actual newlines
+    .replaceAll('\\\\', '\\') // Unescape backslashes
+    .replace(/^"(.*)"$/, '$1'); // Remove surrounding double quotes, if present
+};
+
+const parseValue = function (value) {
+  if (value === 'TRUE') {
+    return true;
+  }
+
+  if (value === 'FALSE') {
+    return false;
+  }
+
+  const number = Number(value);
+  if (!Number.isNaN(number)) {
+    return number;
+  }
+
+  // Remove quotes if found
+  value = value.replace(/^"(.*)"$/, '$1');
+
+  return value;
+};
+
+const parseParameters = function (p) {
+  const out = {};
+  for (const element of p) {
+    if (element.includes('=')) {
+      const segs = element.split('=');
+
+      out[segs[0]] = parseValue(segs.slice(1).join('='));
+    }
+  }
+
+  // Sp is not defined in this scope, typo?
+  // original code from peterbraden
+  // return out || sp;
+  return out;
+};
+
+const storeValueParameter = function (name) {
+  return function (value, curr) {
+    const current = curr[name];
+
+    if (Array.isArray(current)) {
+      current.push(value);
+      return curr;
+    }
+
+    curr[name] = current === undefined ? value : [current, value];
+
+    return curr;
+  };
+};
+
+const storeParameter = function (name) {
+  return function (value, parameters, curr) {
+    const data = parameters && parameters.length > 0 && !(parameters.length === 1 && (parameters[0] === 'CHARSET=utf-8' || parameters[0] === 'VALUE=TEXT')) ? {params: parseParameters(parameters), val: text(value)} : text(value);
+
+    return storeValueParameter(name)(data, curr);
+  };
+};
+
+const addTZ = function (dt, parameters) {
+  if (!dt) {
+    return dt;
+  }
+
+  const p = parseParameters(parameters);
+  if (parameters && p && p.TZID !== undefined) {
+    let tzid = p.TZID.toString();
+    // Remove surrounding quotes if found at the beginning and at the end of the string
+    // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
+    tzid = tzid.replace(/^"(.*)"$/, '$1');
+    return tzUtil.attachTz(dt, tzid);
+  }
+
+  if (dt.tz) {
+    return tzUtil.attachTz(dt, dt.tz);
+  }
+
+  return dt;
+};
+
+function isDateOnly(value, parameters) {
+  const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true);
+  return dateOnly;
+}
+
+const typeParameter = function (name) {
+  // Typename is not used in this function?
+  return function (value, parameters, curr) {
+    const returnValue = isDateOnly(value, parameters) ? 'date' : 'date-time';
+    return storeValueParameter(name)(returnValue, curr);
+  };
+};
+
+const dateParameter = function (name) {
+  return function (value, parameters, curr, stack) {
+    // The regex from main gets confused by extra :
+    const pi = parameters.indexOf('TZID=tzone');
+    if (pi !== -1) {
+      // Correct the parameters with the part on the value
+      parameters[pi] = parameters[pi] + ':' + value.split(':')[0];
+      // Get the date from the field, other code uses the value parameter
+      value = value.split(':')[1];
+    }
+
+    let newDate = text(value);
+
+    // Process 'VALUE=DATE' and EXDATE
+    if (isDateOnly(value, parameters)) {
+      // Just Date
+
+      const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(value);
+      if (comps !== null) {
+        // No TZ info - assume same timezone as this computer
+        newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
+
+        newDate.dateOnly = true;
+
+        // Store as string - worst case scenario
+        return storeValueParameter(name)(newDate, curr);
+      }
+    }
+
+    // Typical RFC date-time format
+    const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(value);
+    if (comps !== null) {
+      const year = Number.parseInt(comps[1], 10);
+      const monthIndex = Number.parseInt(comps[2], 10) - 1;
+      const day = Number.parseInt(comps[3], 10);
+      const hour = Number.parseInt(comps[4], 10);
+      const minute = Number.parseInt(comps[5], 10);
+      const second = Number.parseInt(comps[6], 10);
+
+      if (comps[7] === 'Z') {
+        // GMT
+        newDate = new Date(Date.UTC(year, monthIndex, day, hour, minute, second));
+        tzUtil.attachTz(newDate, 'Etc/UTC');
+      } else {
+        const fallbackWithStackTimezone = () => {
+          // Get the time zone from the stack
+          const stackItemWithTimeZone
+            = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
+          const vTimezone
+            = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
+
+          // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
+          const normalizedTzId = vTimezone
+            ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
+            : null;
+
+          if (!normalizedTzId) {
+            return new Date(year, monthIndex, day, hour, minute, second);
+          }
+
+          const tzInfo = tzUtil.resolveTZID(normalizedTzId);
+          const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
+          if (offsetString) {
+            return tzUtil.parseWithOffset(value, offsetString);
+          }
+
+          if (tzInfo.iana) {
+            return tzUtil.parseDateTimeInZone(value, tzInfo.iana);
+          }
+
+          return new Date(year, monthIndex, day, hour, minute, second);
+        };
+
+        if (parameters) {
+          const parameterMap = parseParameters(parameters);
+          let tz = parameterMap.TZID;
+
+          const findTZIDIndex = () => {
+            if (!Array.isArray(parameters)) {
+              return -1;
+            }
+
+            return parameters.findIndex(parameter => typeof parameter === 'string' && parameter.toUpperCase().startsWith('TZID='));
+          };
+
+          let tzParameterIndex = findTZIDIndex();
+          const setTZIDParameter = newTZID => {
+            if (!Array.isArray(parameters)) {
+              return;
+            }
+
+            const normalized = 'TZID=' + newTZID;
+            if (tzParameterIndex >= 0) {
+              parameters[tzParameterIndex] = normalized;
+            } else {
+              parameters.push(normalized);
+              tzParameterIndex = parameters.length - 1;
+            }
+          };
+
+          if (tz) {
+            tz = tz.toString().replace(/^"(.*)"$/, '$1');
+
+            if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
+              tz = tzUtil.guessLocalZone();
+            }
+
+            const tzInfo = tzUtil.resolveTZID(tz);
+            const resolvedTZID = tzInfo.iana || tzInfo.original || tz;
+            setTZIDParameter(resolvedTZID);
+
+            // Prefer an explicit numeric offset because it keeps DTSTART wall-time semantics accurate across DST transitions.
+            const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
+            if (offsetString) {
+              newDate = tzUtil.parseWithOffset(value, offsetString);
+            } else if (tzInfo.iana) {
+              newDate = tzUtil.parseDateTimeInZone(value, tzInfo.iana);
+            } else {
+              newDate = new Date(year, monthIndex, day, hour, minute, second);
+            }
+
+            // Make sure to correct the parameters if the TZID= is changed
+            newDate = addTZ(newDate, parameters);
+          } else {
+            newDate = fallbackWithStackTimezone();
+          }
+        } else {
+          newDate = fallbackWithStackTimezone();
+        }
+      }
+    }
+
+    // Store as string - worst case scenario
+    return storeValueParameter(name)(newDate, curr);
+  };
+};
+
+const geoParameter = function (name) {
+  return function (value, parameters, curr) {
+    storeParameter(value, parameters, curr);
+    const parts = value.split(';');
+    curr[name] = {lat: Number(parts[0]), lon: Number(parts[1])};
+    return curr;
+  };
+};
+
+const categoriesParameter = function (name) {
+  return function (value, parameters, curr) {
+    storeParameter(value, parameters, curr);
+    if (curr[name] === undefined) {
+      curr[name] = value ? value.split(',').map(s => s.trim()) : [];
+    } else if (value) {
+      curr[name] = curr[name].concat(value.split(',').map(s => s.trim()));
+    }
+
+    return curr;
+  };
+};
+
+// EXDATE is an entry that represents exceptions to a recurrence rule (ex: "repeat every day except on 7/4").
+// The EXDATE entry itself can also contain a comma-separated list, so we parse each date separately.
+// Multiple EXDATE entries can exist in a calendar record.
+//
+// Storage strategy (RFC 5545 compliant):
+// We create an object with the exception dates as keys and Date objects as values.
+// - For VALUE=DATE (date-only): key is "YYYY-MM-DD"
+// - For DATE-TIME: BOTH "YYYY-MM-DD" AND full ISO string keys are created
+//
+// This dual-key approach provides:
+// 1. Backward compatibility: date-only lookups continue to work
+// 2. Precision matching: events recurring multiple times per day can exclude specific instances
+// 3. RFC 5545 compliance: supports both DATE and DATE-TIME exclusions
+//
+// Usage examples:
+//   if (event.exdate?.['2024-01-15']) { ... }              // Check if any instance on this day is excluded
+//   if (event.exdate?.['2024-01-15T14:00:00.000Z']) { ... } // Check specific time instance
+//
+// NOTE: We intentionally use date-based keys as the primary lookup because:
+//   1. Floating times (without timezone) would create inconsistent ISO strings
+//   2. DST transitions can affect exact time matching
+//   3. Real-world calendar data often has mismatched times between RRULE and EXDATE
+const exdateParameter = function (name) {
+  return function (value, parameters, curr) {
+    curr[name] ||= {};
+    const dates = value ? value.split(',').map(s => s.trim()) : [];
+
+    for (const entry of dates) {
+      // Temporary container for dateParameter() to write to
+      const temporaryContainer = {};
+      dateParameter(name)(entry, parameters, temporaryContainer);
+
+      const dateValue = temporaryContainer[name];
+      if (!dateValue) {
+        continue;
+      }
+
+      if (typeof dateValue.toISOString !== 'function') {
+        console.warn(`[node-ical] Invalid exdate value (no toISOString): ${dateValue}`);
+        continue;
+      }
+
+      const isoString = dateValue.toISOString();
+
+      // For date-only events, use local date components to avoid UTC timezone shift
+      // (e.g., 2024-07-15 midnight in UTC+2 would be 2024-07-14T22:00Z, giving wrong dateKey)
+      const dateKey = getDateKey(dateValue);
+
+      // Always store with date-only key for backward compatibility and simple lookups
+      curr[name][dateKey] = dateValue;
+
+      // For DATE-TIME entries, also store with full ISO string for precise matching
+      // This enables excluding specific instances when events recur multiple times per day
+      // Note: dateOnly is already set by dateParameter() which checks the raw value and parameters
+      if (!dateValue.dateOnly) {
+        curr[name][isoString] = dateValue;
+      }
+    }
+
+    return curr;
+  };
+};
+
+// RECURRENCE-ID is the ID of a specific recurrence within a recurrence rule.
+// TODO:  It's also possible for it to have a range, like "THISANDPRIOR", "THISANDFUTURE".  This isn't currently handled.
+const recurrenceParameter = function (name) {
+  return dateParameter(name);
+};
+
+const addFBType = function (fb, parameters) {
+  const p = parseParameters(parameters);
+
+  if (parameters && p) {
+    fb.type = p.FBTYPE || 'BUSY';
+  }
+
+  return fb;
+};
+
+const freebusyParameter = function (name) {
+  return function (value, parameters, curr) {
+    const fb = addFBType({}, parameters);
+    curr[name] ||= [];
+    curr[name].push(fb);
+
+    storeParameter(value, parameters, fb);
+
+    const parts = value.split('/');
+
+    for (const [index, name] of ['start', 'end'].entries()) {
+      dateParameter(name)(parts[index], parameters, fb);
+    }
+
+    return curr;
+  };
+};
+
+module.exports = {
+  objectHandlers: {
+    BEGIN(component, parameters, curr, stack) {
+      stack.push(curr);
+
+      return {type: component, params: parameters};
+    },
+    END(value, parameters, curr, stack) {
+      // Original end function
+      const originalEnd = function (component, parameters_, curr, stack) {
+        // Prevents the need to search the root of the tree for the VCALENDAR object
+        if (component === 'VCALENDAR') {
+          // Scan all high level object in curr and drop all strings
+          let key;
+          let object;
+          const highLevel = {};
+
+          for (key in curr) {
+            if (!Object.hasOwn(curr, key)) {
+              continue;
+            }
+
+            object = curr[key];
+            if (typeof object === 'string') {
+              highLevel[key] = object;
+              delete curr[key];
+            }
+          }
+
+          if (highLevel.type) {
+            curr[highLevel.type.toLowerCase()] = highLevel;
+          }
+
+          return curr;
+        }
+
+        const par = stack.pop();
+
+        if (!curr.end) { // RFC5545, 3.6.1
+          // Helper: clone a Date and preserve custom metadata (tz, dateOnly)
+          const cloneDateWithMeta = (source, newTime = source) => {
+            const cloned = new Date(newTime);
+            if (source?.tz) {
+              cloned.tz = source.tz;
+            }
+
+            if (source?.dateOnly) {
+              cloned.dateOnly = source.dateOnly;
+            }
+
+            return cloned;
+          };
+
+          // Helper: extract string value from DURATION (handles {params, val} shape)
+          const getDurationString = duration => {
+            if (typeof duration === 'object' && duration?.val) {
+              return String(duration.val);
+            }
+
+            if (duration) {
+              return String(duration);
+            }
+
+            return '';
+          };
+
+          // Calculate end date based on DURATION or default rules
+          if (curr.duration === undefined) {
+            // No DURATION: default end is same time (date-time) or +1 day (date-only)
+            curr.end = curr.datetype === 'date-time'
+              ? cloneDateWithMeta(curr.start)
+              : cloneDateWithMeta(curr.start, tzUtil.utcAdd(curr.start, 1, 'days'));
+          } else {
+            const durationString = getDurationString(curr.duration);
+            const durationParts = durationString.match(/-?\d{1,10}[WDHMS]/g);
+
+            if (durationParts && durationParts.length > 0) {
+              // Valid DURATION: apply each component (W/D/H/M/S)
+              const units = {
+                W: 'weeks',
+                D: 'days',
+                H: 'hours',
+                M: 'minutes',
+                S: 'seconds',
+              };
+              const sign = durationString.startsWith('-') ? -1 : 1;
+
+              let endTime = curr.start;
+              for (const part of durationParts) {
+                const value = Number.parseInt(part, 10) * sign;
+                const unit = units[part.slice(-1)];
+                endTime = tzUtil.utcAdd(endTime, value, unit);
+              }
+
+              curr.end = cloneDateWithMeta(curr.start, endTime);
+            } else {
+              // Malformed DURATION (e.g., "P", "PT", "") → treat as zero duration
+              // Follows Postel's Law: be liberal in what you accept
+              console.warn(`[node-ical] Ignoring malformed DURATION value: "${durationString}" – treating as zero duration`);
+              curr.end = cloneDateWithMeta(curr.start);
+            }
+          }
+        }
+
+        if (curr.uid) {
+          // If this is the first time we run into this UID, just save it.
+          if (par[curr.uid] === undefined) {
+            par[curr.uid] = curr;
+
+            if (par.method) { // RFC5545, 3.2
+              par[curr.uid].method = par.method;
+            }
+          } else if (curr.recurrenceid === undefined) {
+            // If we have multiple ical entries with the same UID, it's either going to be a
+            // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
+            // to the entry (SEQUENCE).
+
+            // TODO: Look into proper sequence logic.
+
+            // If we have the same UID as an existing record, and it *isn't* a specific recurrence ID,
+            // not quite sure what the correct behaviour should be.  For now, just take the new information
+            // and merge it with the old record by overwriting only the fields that appear in the new record.
+            let key;
+            for (key in curr) {
+              if (key !== null) {
+                par[curr.uid][key] = curr[key];
+              }
+            }
+          }
+
+          // If we have recurrence-id entries, list them as an array of recurrences keyed off of recurrence-id.
+          // To use - as you're running through the dates of an rrule, you can try looking it up in the recurrences
+          // array.  If it exists, then use the data from the calendar object in the recurrence instead of the parent
+          // for that day.
+
+          // NOTE:  Sometimes the RECURRENCE-ID record will show up *before* the record with the RRULE entry.  In that
+          // case, what happens is that the RECURRENCE-ID record ends up becoming both the parent record and an entry
+          // in the recurrences array, and then when we process the RRULE entry later it overwrites the appropriate
+          // fields in the parent record.
+
+          if (curr.recurrenceid !== undefined) {
+            // TODO:  Is there ever a case where we have to worry about overwriting an existing entry here?
+
+            // Create a copy of the current object to save in our recurrences array.  (We *could* just do par = curr,
+            // except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we
+            // would end up with a shared reference that would cause us to overwrite *both* records at the point
+            // that we try and fix up the parent record.)
+            const recurrenceObject = {};
+            let key;
+            for (key in curr) {
+              if (key !== null) {
+                recurrenceObject[key] = curr[key];
+              }
+            }
+
+            if (recurrenceObject.recurrences !== undefined) {
+              delete recurrenceObject.recurrences;
+            }
+
+            // If we don't have an array to store recurrences in yet, create it.
+            if (par[curr.uid].recurrences === undefined) {
+              par[curr.uid].recurrences = {};
+            }
+
+            // Store the recurrence override with dual-key strategy (same as EXDATE):
+            // - Date-only key (YYYY-MM-DD) for simple lookups
+            // - Full ISO string for precise matching when multiple instances occur per day
+            if (typeof curr.recurrenceid.toISOString === 'function') {
+              const isoString = curr.recurrenceid.toISOString();
+
+              // For date-only events, use local date components to avoid UTC timezone shift
+              const dateKey = getDateKey(curr.recurrenceid);
+
+              // Primary key: date-only for backward compatibility
+              par[curr.uid].recurrences[dateKey] = recurrenceObject;
+
+              // Additional key: full timestamp for events recurring multiple times per day
+              // Note: dateOnly is already set by dateParameter()
+              if (!curr.recurrenceid.dateOnly) {
+                par[curr.uid].recurrences[isoString] = recurrenceObject;
+              }
+            } else {
+              console.warn(`[node-ical] No toISOString function in recurrenceid: ${curr.recurrenceid}`);
+              // Skip malformed recurrence-id entries to avoid storing invalid keys
+            }
+          }
+
+          // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
+          // let's make sure to clear the recurrenceid off the parent field.
+          if (curr.uid !== '__proto__'
+            && par[curr.uid].rrule !== undefined
+            && par[curr.uid].recurrenceid !== undefined) {
+            delete par[curr.uid].recurrenceid;
+          }
+        } else if (component === 'VALARM' && (par.type === 'VEVENT' || par.type === 'VTODO')) {
+          par.alarms ??= [];
+          par.alarms.push(curr);
+        } else {
+          const id = randomUUID();
+          par[id] = curr;
+
+          if (par.method) { // RFC5545, 3.2
+            par[id].method = par.method;
+          }
+        }
+
+        return par;
+      };
+
+      // Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
+      // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
+      // due to the subtypes.
+
+      if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
+        let rule = curr.rrule.replace('RRULE:', '');
+        // Make sure the rrule starts with FREQ=
+        rule = rule.slice(rule.lastIndexOf('FREQ='));
+        // If no rule start date
+        if (rule.includes('DTSTART') === false) {
+          // This a whole day event
+          if (curr.datetype === 'date') {
+            const originalStart = curr.start;
+            // Get the timezone offset
+            // The internal date is stored in UTC format
+            const offset = originalStart.getTimezoneOffset();
+            let nextStart;
+
+            // Only east of gmt is a problem
+            if (offset < 0) {
+              // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
+              // Make the internally stored DATE the actual date (not UTC offseted)
+              // Luxon expects local time, not utc, so gets start date wrong if not adjusted
+              nextStart = new Date(originalStart.getTime() + (Math.abs(offset) * 60_000));
+            } else {
+              // Strip any residual time component by rebuilding local midnight
+              nextStart = new Date(
+                originalStart.getFullYear(),
+                originalStart.getMonth(),
+                originalStart.getDate(),
+                0,
+                0,
+                0,
+                0,
+              );
+            }
+
+            curr.start = nextStart;
+
+            // Preserve any metadata that was attached to the original Date instance.
+            if (originalStart && originalStart.tz) {
+              tzUtil.attachTz(curr.start, originalStart?.tz);
+            }
+
+            if (originalStart && originalStart.dateOnly === true) {
+              curr.start.dateOnly = true;
+            }
+          }
+
+          // If the date has an toISOString function
+          if (curr.start && typeof curr.start.toISOString === 'function') {
+            try {
+              // If the original date has a TZID, add it
+              // BUT: UTC (Etc/UTC, UTC, Etc/GMT) should use ISO format with Z, not TZID
+              const isUtc = tzUtil.isUtcTimezone(curr.start.tz);
+
+              // For date-only events (VALUE=DATE), we need to preserve that information
+              // so rrule-temporal can properly validate UNTIL values.
+              // Use local date components since dateOnly dates are created with local timezone
+              // (see dateParameter where new Date(year, month, day) is used without UTC)
+              if (curr.start.dateOnly) {
+                // Format: YYYYMMDD using local date components
+                const year = curr.start.getFullYear();
+                const month = String(curr.start.getMonth() + 1).padStart(2, '0');
+                const day = String(curr.start.getDate()).padStart(2, '0');
+                rule += `;DTSTART;VALUE=DATE:${year}${month}${day}`;
+              } else if (curr.start.tz && !isUtc) {
+                const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                const localStamp = tzUtil.formatDateForRrule(curr.start, tzInfo);
+                const tzidLabel = tzInfo.iana || tzInfo.etc || tzInfo.original;
+
+                if (localStamp && tzidLabel) {
+                  // RFC5545 requires DTSTART to be expressed in local time when a TZID is present.
+                  rule += `;DTSTART;TZID=${tzidLabel}:${localStamp}`;
+                } else if (localStamp) {
+                  // Fall back to a floating DTSTART (still without a trailing Z) if we lack a dependable TZ label.
+                  rule += `;DTSTART=${localStamp}`;
+                } else {
+                  // Ultimate fallback: emit a UTC value (legacy behaviour) rather than crashing.
+                  rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
+                }
+              } else {
+                rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
+              }
+
+              rule = rule.replace(/\.\d{3}/, '');
+            } catch (error) { // This should not happen, issue #56
+              throw new Error('ERROR when trying to convert to ISOString ' + error);
+            }
+          } else {
+            throw new Error('No toISOString function in curr.start ' + curr.start);
+          }
+        }
+
+        // Create RRuleTemporal with separate DTSTART and RRULE parameters
+        if (curr.start) {
+          // Extract RRULE segments while preserving everything except inline DTSTART
+          // When rule contains DTSTART;TZID=..., splitting on ';' produces orphaned
+          // TZID= and VALUE= segments that must also be filtered out
+          let rruleOnly = rule.split(';')
+            .filter(segment =>
+              !segment.startsWith('DTSTART')
+              && !segment.startsWith('VALUE=')
+              && !segment.startsWith('TZID='))
+            .join(';');
+
+          // Normalize UNTIL for rrule-temporal 1.4.2+ compatibility:
+          // - DATE-only DTSTART: UNTIL must also be DATE-only (strip time)
+          // - DATE-TIME DTSTART: UNTIL must be UTC with Z suffix
+          if (rruleOnly.includes('UNTIL=')) {
+            const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/);
+            if (untilMatch) {
+              const [, datePart, timePart, zSuffix] = untilMatch;
+
+              if (curr.start.dateOnly) {
+                // DATE-only: strip time from UNTIL
+                if (timePart) {
+                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/, `UNTIL=${datePart}`);
+                }
+              } else if (!timePart) {
+                // DATE-TIME DTSTART but UNTIL has no time part (Google Calendar bug)
+                // Interpret UNTIL as end-of-day (23:59:59) in the event's timezone, then convert to UTC
+                let converted = false;
+                if (curr.start.tz) {
+                  try {
+                    const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                    const untilLocal = datePart + 'T235959'; // End of day in local timezone
+
+                    let untilDateObject;
+                    if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
+                      untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
+                    } else if (Number.isFinite(tzInfo.offsetMinutes) && typeof tzInfo.offset === 'string' && tzInfo.offset) {
+                      untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
+                    }
+
+                    if (untilDateObject) {
+                      const untilUtc = untilDateObject.toISOString().replaceAll(/[-:]/g, '').replace(/\.\d{3}/, '');
+                      rruleOnly = rruleOnly.replace(/UNTIL=(\d{8})(?!T)/, `UNTIL=${untilUtc}`);
+                      converted = true;
+                    }
+                  } catch {/* Fall through to UTC fallback */}
+                }
+
+                if (!converted) {
+                  // No timezone info available - assume UNTIL date means end-of-day UTC
+                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8})(?!T)/, 'UNTIL=$1T235959Z');
+                }
+              } else if (timePart && !zSuffix) {
+                // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
+                let converted = false;
+                if (curr.start.tz) {
+                  try {
+                    const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                    const untilLocal = datePart + timePart;
+                    let untilDateObject;
+
+                    if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
+                      untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
+                    } else if (Number.isFinite(tzInfo.offsetMinutes)) {
+                      untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
+                    }
+
+                    if (untilDateObject) {
+                      const untilUtc = untilDateObject.toISOString().replaceAll(/[-:]/g, '').replace(/\.\d{3}/, '');
+                      rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/, `UNTIL=${untilUtc}`);
+                      converted = true;
+                    }
+                  } catch {/* Fall through to append Z */}
+                }
+
+                if (!converted) {
+                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8}T\d{6})(?!Z)/, 'UNTIL=$1Z');
+                }
+              }
+            }
+          }
+
+          // For DATE-only events, we need to include DTSTART;VALUE=DATE in the rruleString
+          // because rrule-temporal needs to know it's a DATE (not DATE-TIME) to validate UNTIL
+          if (curr.start.dateOnly) {
+            // Build DTSTART;VALUE=DATE:YYYYMMDD from curr.start
+            // Use local getters (not UTC) to match dateParameter which creates Date with local components
+            const year = curr.start.getFullYear();
+            const month = String(curr.start.getMonth() + 1).padStart(2, '0');
+            const day = String(curr.start.getDate()).padStart(2, '0');
+            const dtstartString = `DTSTART;VALUE=DATE:${year}${month}${day}`;
+
+            // Prepend DTSTART to rruleString
+            const fullRruleString = `${dtstartString}\nRRULE:${rruleOnly}`;
+
+            const rruleTemporal = new RRuleTemporal({
+              rruleString: fullRruleString,
+            });
+
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+          } else {
+            // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
+            let dtstartTemporal;
+
+            if (curr.start.tz) {
+              // Has timezone - use Intl to get the local wall-clock time in that timezone
+              const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+              const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
+
+              try {
+                // Extract local time components in the target timezone.
+                // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
+                // wall-clock time in the event's timezone.
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                  timeZone,
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  second: 'numeric',
+                  hour12: false,
+                });
+
+                const parts = formatter.formatToParts(curr.start);
+                const partMap = {};
+                for (const part of parts) {
+                  if (part.type !== 'literal') {
+                    partMap[part.type] = Number.parseInt(part.value, 10);
+                  }
+                }
+
+                // Create a PlainDateTime from the local time components
+                const plainDateTime = Temporal.PlainDateTime.from({
+                  year: partMap.year,
+                  month: partMap.month,
+                  day: partMap.day,
+                  hour: partMap.hour,
+                  minute: partMap.minute,
+                  second: partMap.second,
+                });
+
+                dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
+              } catch (error) {
+                // Invalid timezone - fall back to UTC interpretation
+                console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
+                dtstartTemporal = Temporal.ZonedDateTime.from({
+                  year: curr.start.getUTCFullYear(),
+                  month: curr.start.getUTCMonth() + 1,
+                  day: curr.start.getUTCDate(),
+                  hour: curr.start.getUTCHours(),
+                  minute: curr.start.getUTCMinutes(),
+                  second: curr.start.getUTCSeconds(),
+                  timeZone: 'UTC',
+                });
+              }
+            } else {
+              // No timezone - use UTC
+              dtstartTemporal = Temporal.ZonedDateTime.from({
+                year: curr.start.getUTCFullYear(),
+                month: curr.start.getUTCMonth() + 1,
+                day: curr.start.getUTCDate(),
+                hour: curr.start.getUTCHours(),
+                minute: curr.start.getUTCMinutes(),
+                second: curr.start.getUTCSeconds(),
+                timeZone: 'UTC',
+              });
+            }
+
+            const rruleTemporal = new RRuleTemporal({
+              rruleString: rruleOnly,
+              dtstart: dtstartTemporal,
+            });
+
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+          }
+        }
+      }
+
+      return originalEnd.call(this, value, parameters, curr, stack);
+    },
+    SUMMARY: storeParameter('summary'),
+    DESCRIPTION: storeParameter('description'),
+    URL: storeParameter('url'),
+    UID: storeParameter('uid'),
+    LOCATION: storeParameter('location'),
+    DTSTART(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.start === undefined) {
+        curr = dateParameter('start')(value, parameters, curr, stack);
+        return typeParameter('datetype')(value, parameters, curr);
+      }
+
+      throw new Error('duplicate DTSTART encountered, line=' + line);
+    },
+    DTEND(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.end === undefined) {
+        return dateParameter('end')(value, parameters, curr, stack);
+      }
+
+      throw new Error('duplicate DTEND encountered, line=' + line);
+    },
+    EXDATE: exdateParameter('exdate'),
+    ' CLASS': storeParameter('class'), // Should there be a space in this property?
+    TRANSP: storeParameter('transparency'),
+    GEO: geoParameter('geo'),
+    'PERCENT-COMPLETE': storeParameter('completion'),
+    COMPLETED: dateParameter('completed'),
+    CATEGORIES: categoriesParameter('categories'),
+    FREEBUSY: freebusyParameter('freebusy'),
+    DTSTAMP: dateParameter('dtstamp'),
+    CREATED: dateParameter('created'),
+    'LAST-MODIFIED': dateParameter('lastmodified'),
+    'RECURRENCE-ID': recurrenceParameter('recurrenceid'),
+    RRULE(value, parameters, curr, stack, line) {
+      curr.rrule = line;
+      return curr;
+    },
+  },
+
+  handleObject(name, value, parameters, ctx, stack, line) {
+    if (this.objectHandlers[name]) {
+      return this.objectHandlers[name](value, parameters, ctx, stack, line);
+    }
+
+    // Handling custom properties
+    if (/X-[\w-]+/.test(name) && stack.length > 0) {
+      // Trimming the leading and perform storeParam
+      name = name.slice(2);
+      return storeParameter(name)(value, parameters, ctx, stack, line);
+    }
+
+    return storeParameter(name.toLowerCase())(value, parameters, ctx);
+  },
+
+  parseLines(lines, limit, ctx, stack, lastIndex, cb) {
+    if (!cb && typeof ctx === 'function') {
+      cb = ctx;
+      ctx = undefined;
+    }
+
+    ctx ||= {};
+    stack ||= [];
+
+    let limitCounter = 0;
+
+    let i = lastIndex || 0;
+    for (let ii = lines.length; i < ii; i++) {
+      let l = lines[i];
+      // Unfold : RFC#3.1
+      while (lines[i + 1] && /[ \t]/.test(lines[i + 1][0])) {
+        l += lines[i + 1].slice(1);
+        i++;
+      }
+
+      // Remove any double quotes in any tzid statement// except around (utc+hh:mm
+      if (l.includes('TZID=') && !l.includes('"(')) {
+        l = l.replaceAll('"', '');
+      }
+
+      const exp = /^([\w\d-]+)((?:;[\w\d-]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/;
+      let kv = l.match(exp);
+
+      if (kv === null) {
+        // Invalid line - must have k&v
+        continue;
+      }
+
+      kv = kv.slice(1);
+
+      const value = kv.at(-1);
+      const name = kv[0];
+      const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
+
+      ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
+      if (++limitCounter > limit) {
+        break;
+      }
+    }
+
+    if (i >= lines.length) {
+      // Type and params are added to the list of items, get rid of them.
+      delete ctx.type;
+      delete ctx.params;
+    }
+
+    if (cb) {
+      if (i < lines.length) {
+        setImmediate(() => {
+          this.parseLines(lines, limit, ctx, stack, i + 1, cb);
+        });
+      } else {
+        setImmediate(() => {
+          cb(null, ctx);
+        });
+      }
+    } else {
+      return ctx;
+    }
+  },
+
+  parseICS(string, cb) {
+    const lines = string.split(/\r?\n/);
+    let ctx;
+
+    if (cb) {
+      // Asynchronous execution
+      this.parseLines(lines, 2000, cb);
+    } else {
+      // Synchronous execution
+      ctx = this.parseLines(lines, lines.length);
+      return ctx;
+    }
+  },
+};
+
+
+/***/ }),
+
+/***/ 2839:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const fs = __nccwpck_require__(7561);
+const ical = __nccwpck_require__(6454);
+
+/**
+ * ICal event object.
+ *
+ * These two fields are always present:
+ *  - type
+ *  - params
+ *
+ * The rest of the fields may or may not be present depending on the input.
+ * Do not assume any of these fields are valid and check them before using.
+ * Most types are simply there as a general guide for IDEs and users.
+ *
+ * @typedef iCalEvent
+ * @type {object}
+ *
+ * @property {string} type           - Type of event.
+ * @property {Array} params          - Extra event parameters.
+ *
+ * @property {?object} start         - When this event starts.
+ * @property {?object} end           - When this event ends.
+ *
+ * @property {?string} summary       - Event summary string.
+ * @property {?string} description   - Event description.
+ *
+ * @property {?object} dtstamp       - DTSTAMP field of this event.
+ *
+ * @property {?object} created       - When this event was created.
+ * @property {?object} lastmodified  - When this event was last modified.
+ *
+ * @property {?string} uid           - Unique event identifier.
+ *
+ * @property {?string} status        - Event status.
+ *
+ * @property {?string} sequence      - Event sequence.
+ *
+ * @property {?string} url           - URL of this event.
+ *
+ * @property {?string} location      - Where this event occurs.
+ * @property {?{
+ *     lat: number, lon: number
+ * }} geo                            - Lat/lon location of this event.
+ *
+ * @property {?Array.<string>}       - Array of event catagories.
+ */
+/**
+ * Object containing iCal events.
+ * @typedef {Object.<string, iCalEvent>} iCalData
+ */
+/**
+ * Callback for iCal parsing functions with error and iCal data as a JavaScript object.
+ * @callback icsCallback
+ * @param {Error} err
+ * @param {iCalData} ics
+ */
+/**
+ * A Promise that is undefined if a compatible callback is passed.
+ * @typedef {(Promise.<iCalData>|undefined)} optionalPromise
+ */
+
+// utility to allow callbacks to be used for promises
+function promiseCallback(fn, cb) {
+  const promise = new Promise(fn);
+  if (!cb) {
+    return promise;
+  }
+
+  promise
+    .then(returnValue => {
+      cb(null, returnValue);
+    })
+    .catch(error => {
+      cb(error, null);
+    });
+}
+
+// Sync functions
+const sync = {};
+// Async functions
+const async = {};
+// Auto-detect functions for backwards compatibility.
+const autodetect = {};
+
+/**
+ * Download an iCal file from the web and parse it.
+ *
+ * @param {string} url                - URL of file to request.
+ * @param {Object|icsCallback} [opts] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
+ *                                      Alternatively you can pass the callback function directly.
+ *                                      If no callback is provided a promise will be returned.
+ * @param {icsCallback} [cb]          - Callback function.
+ *                                      If no callback is provided a promise will be returned.
+ *
+ * @returns {optionalPromise} Promise is returned if no callback is passed.
+ */
+async.fromURL = function (url, options, cb) {
+  // Normalize overloads: (url, cb) or (url, options, cb)
+  if (typeof options === 'function' && cb === undefined) {
+    cb = options;
+    options = undefined;
+  }
+
+  return promiseCallback((resolve, reject) => {
+    const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
+
+    fetch(url, fetchOptions)
+      .then(response => {
+        if (!response.ok) {
+          // Mimic previous error style
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+
+        return response.text();
+      })
+      .then(data => {
+        ical.parseICS(data, (error, ics) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          resolve(ics);
+        });
+      })
+      .catch(error => {
+        reject(error);
+      });
+  }, cb);
+};
+
+/**
+ * Load iCal data from a file and parse it.
+ *
+ * @param {string} filename   - File path to load.
+ * @param {icsCallback} [cb]  - Callback function.
+ *                              If no callback is provided a promise will be returned.
+ *
+ * @returns {optionalPromise} Promise is returned if no callback is passed.
+ */
+async.parseFile = function (filename, cb) {
+  return promiseCallback((resolve, reject) => {
+    fs.readFile(filename, 'utf8', (error, data) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      ical.parseICS(data, (error, ics) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(ics);
+      });
+    });
+  }, cb);
+};
+
+/**
+ * Parse iCal data from a string.
+ *
+ * @param {string} data       - String containing iCal data.
+ * @param {icsCallback} [cb]  - Callback function.
+ *                              If no callback is provided a promise will be returned.
+ *
+ * @returns {optionalPromise} Promise is returned if no callback is passed.
+ */
+async.parseICS = function (data, cb) {
+  return promiseCallback((resolve, reject) => {
+    ical.parseICS(data, (error, ics) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(ics);
+    });
+  }, cb);
+};
+
+/**
+ * Load iCal data from a file and parse it.
+ *
+ * @param {string} filename   - File path to load.
+ *
+ * @returns {iCalData} Parsed iCal data.
+ */
+sync.parseFile = function (filename) {
+  const data = fs.readFileSync(filename, 'utf8');
+  return ical.parseICS(data);
+};
+
+/**
+ * Parse iCal data from a string.
+ *
+ * @param {string} data - String containing iCal data.
+ *
+ * @returns {iCalData} Parsed iCal data.
+ */
+sync.parseICS = function (data) {
+  return ical.parseICS(data);
+};
+
+/**
+ * Load iCal data from a file and parse it.
+ *
+ * @param {string} filename   - File path to load.
+ * @param {icsCallback} [cb]  - Callback function.
+ *                              If no callback is provided this function runs synchronously.
+ *
+ * @returns {iCalData|undefined} Parsed iCal data or undefined if a callback is being used.
+ */
+autodetect.parseFile = function (filename, cb) {
+  if (!cb) {
+    return sync.parseFile(filename);
+  }
+
+  async.parseFile(filename, cb);
+};
+
+/**
+ * Parse iCal data from a string.
+ *
+ * @param {string} data       - String containing iCal data.
+ * @param {icsCallback} [cb]  - Callback function.
+ *                              If no callback is provided this function runs synchronously.
+ *
+ * @returns {iCalData|undefined} Parsed iCal data or undefined if a callback is being used.
+ */
+autodetect.parseICS = function (data, cb) {
+  if (!cb) {
+    return sync.parseICS(data);
+  }
+
+  async.parseICS(data, cb);
+};
+
+/**
+ * Generate date key for EXDATE/RECURRENCE-ID lookups
+ * Must match ical.js getDateKey semantics for lookups to succeed.
+ * @param {Date} date
+ * @param {boolean} isFullDay
+ * @returns {string} Date key in YYYY-MM-DD format
+ */
+function generateDateKey(date, isFullDay) {
+  if (isFullDay) {
+    // Use local getters for date-only events to match ical.js behavior
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  // For timed events, return date portion only to match ical.js
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Create date from UTC components to avoid DST issues for full-day events.
+ * This ensures that a DATE value of 20250107 stays as January 7th regardless of timezone.
+ * @param {Date} utcDate - Date from RRULE (UTC midnight)
+ * @returns {Date} Date representing the same calendar day at local midnight
+ */
+function createLocalDateFromUTC(utcDate) {
+  // For full-day events, we want the calendar date, not the moment in time
+  // Extract the UTC date components and create a local date with same calendar day
+  const year = utcDate.getUTCFullYear();
+  const month = utcDate.getUTCMonth();
+  const day = utcDate.getUTCDate();
+  // Create date at midnight in local timezone with same calendar day
+  return new Date(year, month, day, 0, 0, 0, 0);
+}
+
+/**
+ * Get event duration in milliseconds.
+ * @param {object} eventData - The event data (original or override)
+ * @param {boolean} isFullDay - Whether this is a full-day event
+ * @returns {number} Duration in milliseconds
+ */
+function getEventDurationMs(eventData, isFullDay) {
+  if (eventData?.start && eventData?.end) {
+    return new Date(eventData.end).getTime() - new Date(eventData.start).getTime();
+  }
+
+  if (isFullDay) {
+    return 24 * 60 * 60 * 1000;
+  }
+
+  return 0;
+}
+
+/**
+ * Calculate end time for an event instance
+ * @param {Date} start - The start time of this specific instance
+ * @param {object} eventData - The event data (original or override)
+ * @param {boolean} isFullDay - Whether this is a full-day event
+ * @param {number} [baseDurationMs] - Base duration (used when override lacks end)
+ * @returns {Date} End time for this instance
+ */
+function calculateEndTime(start, eventData, isFullDay, baseDurationMs) {
+  const durationMs = (eventData?.start && eventData?.end)
+    ? getEventDurationMs(eventData, isFullDay)
+    : (baseDurationMs ?? (isFullDay ? 24 * 60 * 60 * 1000 : 0));
+
+  return new Date(start.getTime() + durationMs);
+}
+
+/**
+ * Process a non-recurring event
+ * @param {object} event
+ * @param {object} options
+ * @returns {Array} Array of event instances
+ */
+function processNonRecurringEvent(event, options) {
+  const {from, to, expandOngoing} = options;
+  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
+  const baseDurationMs = getEventDurationMs(event, isFullDay);
+
+  // Ensure we have a proper Date object
+  let eventStart = event.start instanceof Date ? event.start : new Date(event.start);
+
+  // For full-day events, normalize to local calendar date to avoid timezone shifts
+  if (isFullDay) {
+    eventStart = createLocalDateFromUTC(eventStart);
+  }
+
+  const eventEnd = calculateEndTime(eventStart, event, isFullDay, baseDurationMs);
+
+  // Check if event is within range
+  const inRange = expandOngoing
+    ? (eventEnd >= from && eventStart <= to)
+    : (eventStart >= from && eventStart <= to);
+
+  if (!inRange) {
+    return [];
+  }
+
+  return [{
+    start: eventStart,
+    end: eventEnd,
+    summary: event.summary || '',
+    isFullDay,
+    isRecurring: false,
+    isOverride: false,
+    event,
+  }];
+}
+
+/**
+ * Process a recurring event instance
+ * @param {Date} date
+ * @param {object} event
+ * @param {object} options
+ * @param {number} baseDurationMs
+ * @returns {object|null} Event instance or null if excluded
+ */
+function processRecurringInstance(date, event, options, baseDurationMs) {
+  const {excludeExdates, includeOverrides} = options;
+  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
+
+  // Generate date key for lookups
+  const dateKey = generateDateKey(date, isFullDay);
+
+  // Check EXDATE exclusions
+  if (excludeExdates && event.exdate && event.exdate[dateKey]) {
+    return null;
+  }
+
+  // Check for RECURRENCE-ID override
+  let instanceEvent = event;
+  let isOverride = false;
+
+  if (includeOverrides && event.recurrences && event.recurrences[dateKey]) {
+    instanceEvent = event.recurrences[dateKey];
+    isOverride = true;
+  }
+
+  // Calculate start time for this instance
+  let start = date;
+
+  // If override has its own DTSTART, use that instead of the RRULE-generated date
+  if (isOverride && instanceEvent.start) {
+    start = instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start);
+  }
+
+  // For full-day events, extract UTC components to avoid DST issues
+  if (isFullDay) {
+    start = createLocalDateFromUTC(start);
+  }
+
+  // For recurring events, use override duration when available; otherwise use base duration
+  const end = calculateEndTime(start, instanceEvent, isFullDay, baseDurationMs);
+
+  return {
+    start,
+    end,
+    summary: instanceEvent.summary || event.summary || '',
+    isFullDay,
+    isRecurring: true,
+    isOverride,
+    event: instanceEvent,
+  };
+}
+
+/**
+ * Check if an event instance is within the specified date range
+ * @param {object} instance - Event instance with start, end, isFullDay
+ * @param {Date} from - Range start
+ * @param {Date} to - Range end
+ * @param {boolean} expandOngoing - Whether to include ongoing events
+ * @returns {boolean} Whether instance is in range
+ */
+function isInstanceInRange(instance, from, to, expandOngoing) {
+  if (instance.isFullDay) {
+    // For full-day events, compare calendar dates only (ignore time component)
+    const instanceDate = new Date(instance.start.getFullYear(), instance.start.getMonth(), instance.start.getDate());
+    const fromDate = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+    const toDate = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+    const instanceEndDate = new Date(instance.end.getFullYear(), instance.end.getMonth(), instance.end.getDate());
+
+    return expandOngoing
+      ? (instanceEndDate >= fromDate && instanceDate <= toDate)
+      : (instanceDate >= fromDate && instanceDate <= toDate);
+  }
+
+  // For timed events: use exact timestamp comparison
+  return expandOngoing
+    ? (instance.end >= from && instance.start <= to)
+    : (instance.start >= from && instance.start <= to);
+}
+
+/**
+ * Expand a recurring event into individual instances within a date range.
+ * Handles RRULE expansion, EXDATE filtering, and RECURRENCE-ID overrides.
+ * Also works for non-recurring events (returns single instance if within range).
+ *
+ * @param {object} event - The VEVENT object (with or without rrule)
+ * @param {object} options - Expansion options
+ * @param {Date} options.from - Start of date range (inclusive)
+ * @param {Date} options.to - End of date range (inclusive)
+ * @param {boolean} [options.includeOverrides=true] - Apply RECURRENCE-ID overrides
+ * @param {boolean} [options.excludeExdates=true] - Filter out EXDATE exclusions
+ * @param {boolean} [options.expandOngoing=false] - Include events that started before range but still ongoing
+ * @returns {Array<{start: Date, end: Date, summary: string, isFullDay: boolean, isRecurring: boolean, isOverride: boolean, event: object}>} Sorted array of event instances
+ */
+function expandRecurringEvent(event, options) {
+  const {
+    from,
+    to,
+    includeOverrides = true,
+    excludeExdates = true,
+    expandOngoing = false,
+  } = options;
+
+  // Input validation
+  if (!(from instanceof Date) || Number.isNaN(from.getTime())) {
+    throw new TypeError('options.from must be a valid Date object');
+  }
+
+  if (!(to instanceof Date) || Number.isNaN(to.getTime())) {
+    throw new TypeError('options.to must be a valid Date object');
+  }
+
+  if (from > to) {
+    throw new RangeError('options.from must be before or equal to options.to');
+  }
+
+  // Handle non-recurring events
+  if (!event.rrule) {
+    return processNonRecurringEvent(event, {from, to, expandOngoing});
+  }
+
+  // Handle recurring events
+  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
+  const baseDurationMs = getEventDurationMs(event, isFullDay);
+
+  // For full-day events, adjust 'to' to end of day to ensure RRULE includes the full day
+  // in all timezones (otherwise timezone offset can truncate the last day)
+  let searchTo = to;
+  if (isFullDay && to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0) {
+    searchTo = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999);
+  }
+
+  // For expandOngoing, look back by the event duration to capture ongoing instances
+  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
+  const dates = event.rrule.between(searchFrom, searchTo, true);
+  const instances = [];
+
+  for (const date of dates) {
+    const instance = processRecurringInstance(date, event, {excludeExdates, includeOverrides}, baseDurationMs);
+    if (instance && isInstanceInRange(instance, from, to, expandOngoing)) {
+      instances.push(instance);
+    }
+  }
+
+  return instances.sort((a, b) => a.start - b.start);
+}
+
+// Export api functions
+module.exports = {
+  // Autodetect
+  fromURL: async.fromURL,
+  parseFile: autodetect.parseFile,
+  parseICS: autodetect.parseICS,
+  // Sync
+  sync,
+  // Async
+  async,
+  // Recurring event expansion
+  expandRecurringEvent,
+  // Other backwards compat things
+  objectHandlers: ical.objectHandlers,
+  handleObject: ical.handleObject,
+  parseLines: ical.parseLines,
+};
+
+
+/***/ }),
+
+/***/ 5108:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+// Thin abstraction over Intl to centralize all timezone logic
+// This simplifies swapping libraries later and is easy to mock in tests.
+
+// Minimal alias map to emulate the subset of moment.tz.link behavior tests rely on
+const aliasMap = new Map();
+const windowsZones = __nccwpck_require__(7114);
+
+/**
+ * Normalize a Windows timezone display label so that visually similar strings compare equally.
+ * Collapses whitespace, trims the result, and lowercases the value for case-insensitive lookups.
+ *
+ * @param {string} label
+ * @returns {string}
+ */
+function normalizeWindowsLabel(label) {
+  return String(label)
+    .replaceAll(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Build an index of normalized Windows timezone labels (and common variants) to their data entries.
+ * This lets us resolve the canonical IANA identifier without relying on fuzzy substring matching.
+ *
+ * @param {Record<string, {iana: string[]}>} source
+ * @returns {Map<string, {iana: string[]}>}
+ */
+function buildWindowsLabelIndex(source) {
+  const index = new Map();
+
+  const addVariant = (label, data) => {
+    const normalized = normalizeWindowsLabel(label);
+    if (!normalized || index.has(normalized)) {
+      return;
+    }
+
+    index.set(normalized, data);
+  };
+
+  for (const [label, data] of Object.entries(source)) {
+    addVariant(label, data);
+
+    const withoutOffset = label.replace(/^\(utc[^)]*\)\s*/i, '').replace(/^\(gmt[^)]*\)\s*/i, '');
+    if (withoutOffset !== label) {
+      addVariant(withoutOffset, data);
+
+      if (withoutOffset.includes(',')) {
+        for (const segment of withoutOffset.split(',')) {
+          addVariant(segment, data);
+        }
+      }
+    }
+  }
+
+  return index;
+}
+
+const windowsLabelIndex = buildWindowsLabelIndex(windowsZones);
+
+/**
+ * Resolve a Windows/legacy timezone label to the canonical IANA identifier exported in windowsZones.json.
+ *
+ * @param {string} label
+ * @returns {string|null}
+ */
+function mapWindowsZone(label) {
+  const exact = windowsZones[label];
+  if (exact && Array.isArray(exact.iana) && exact.iana.length > 0) {
+    return exact.iana[0];
+  }
+
+  const normalized = normalizeWindowsLabel(label);
+  const indexed = windowsLabelIndex.get(normalized);
+  if (indexed && Array.isArray(indexed.iana) && indexed.iana.length > 0) {
+    return indexed.iana[0];
+  }
+
+  if (label.includes(',')) {
+    // Some feeds pass comma-separated display names; try each segment individually.
+    for (const segment of label.split(',')) {
+      const variant = windowsLabelIndex.get(normalizeWindowsLabel(segment));
+      if (variant && Array.isArray(variant.iana) && variant.iana.length > 0) {
+        return variant.iana[0];
+      }
+    }
+  }
+
+  return null;
+}
+
+function pad2(value) {
+  return String(value).padStart(2, '0');
+}
+
+// Simple per-zone formatter cache to reduce Intl constructor churn
+const dtfCache = new Map();
+
+// Memoize IANA zone validity checks to avoid repeated Intl constructor throws
+const validIanaCache = new Map();
+
+/**
+ * Get a cached Intl.DateTimeFormat instance for the specified timezone.
+ * Creates and caches a new formatter if one doesn't exist for the zone.
+ *
+ * @param {string} tz - The IANA timezone identifier.
+ * @returns {Intl.DateTimeFormat} The cached formatter instance.
+ */
+function getFormatter(tz) {
+  let formatter = dtfCache.get(tz);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    dtfCache.set(tz, formatter);
+  }
+
+  return formatter;
+}
+
+/**
+ * Work around the legacy Intl bug where some Node.js releases prior to v22 emit "24" for the
+ * hour component at local midnight (verified with Node 20 against zones like Africa/Abidjan).
+ * Node 22+ normalizes the output to "00", so this helper becomes unnecessary once we require
+ * Node 22 or newer and can be safely removed at that point.
+ *
+ * @param {Date} date
+ * @param {Intl.DateTimeFormat} formatter
+ * @param {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}} parts
+ * @returns {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}}
+ */
+function normalizeMidnightParts(date, formatter, parts) {
+  if (!parts || typeof formatter?.formatToParts !== 'function') {
+    return parts;
+  }
+
+  const next = new Date(date.getTime() + 1000);
+  const nextParts = formatter.formatToParts(next);
+  for (const p of nextParts) {
+    if (p.type === 'year') {
+      parts.year = Number(p.value);
+    }
+
+    if (p.type === 'month') {
+      parts.month = Number(p.value);
+    }
+
+    if (p.type === 'day') {
+      parts.day = Number(p.value);
+    }
+  }
+
+  parts.hour = 0;
+  parts.minute = 0;
+  parts.second = 0;
+  return parts;
+}
+
+/**
+ * Convert textual UTC offsets ("+05:30", "UTC-4", "(UTC+02:00)") into signed minute counts.
+ *
+ * @param {string} offset
+ * @returns {number|undefined}
+ */
+function offsetLabelToMinutes(offset) {
+  if (!offset) {
+    return undefined;
+  }
+
+  const trimmed = String(offset)
+    .trim()
+    .replace(/^\(?(?:utc|gmt)\)?\s*/i, '')
+    .replace(/\)$/, '')
+    .trim();
+  const match = trimmed.match(/^([+-])(\d{1,2})(?::?(\d{2}))?$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const [, sign, hoursPart, minutesPart] = match;
+  const hours = Number(hoursPart);
+  const minutes = minutesPart ? Number(minutesPart) : 0;
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return undefined;
+  }
+
+  // Minutes must be < 60; IANA/ICS max absolute offset is 14:00
+  if (minutes >= 60) {
+    return undefined;
+  }
+
+  if (hours > 14 || (hours === 14 && minutes !== 0)) {
+    return undefined;
+  }
+
+  const total = (hours * 60) + minutes;
+  return sign === '-' ? -total : total;
+}
+
+function minutesToOffset(totalMinutes) {
+  if (!Number.isFinite(totalMinutes)) {
+    return undefined;
+  }
+
+  const sign = totalMinutes < 0 ? '-' : '+';
+  const absolute = Math.abs(totalMinutes);
+  const hours = Math.floor(absolute / 60);
+  const minutes = absolute % 60;
+  return `${sign}${pad2(hours)}:${pad2(minutes)}`;
+}
+
+function minutesToEtcZone(totalMinutes) {
+  if (!Number.isFinite(totalMinutes)) {
+    return undefined;
+  }
+
+  if (totalMinutes === 0) {
+    return 'Etc/GMT';
+  }
+
+  if (totalMinutes % 60 !== 0) {
+    return undefined;
+  }
+
+  const hours = Math.abs(totalMinutes) / 60;
+  const sign = totalMinutes > 0 ? '-' : '+'; // Etc/GMT zones invert sign
+  return `Etc/GMT${sign}${hours}`;
+}
+
+/**
+ * Convert a `{year, month, day, hour, minute, second}` structure into UTC milliseconds.
+ *
+ * @param {{year: number, month: number, day: number, hour?: number, minute?: number, second?: number}} parts
+ * @returns {number}
+ */
+function ymdhmsToUtcMs(parts = {}) {
+  const {
+    year,
+    month,
+    day,
+    hour = 0,
+    minute = 0,
+    second = 0,
+  } = parts;
+
+  return Date.UTC(year, month - 1, day, hour, minute, second);
+}
+
+/**
+ * Fixed-point iteration that aligns an initial UTC guess to the desired local wall time.
+ * Runs up to three passes to survive DST gaps/folds and returns the closest valid instant.
+ *
+ * For spring-forward gaps (e.g., 2:30 AM during DST transition when clocks jump to 3:30 AM):
+ * - Returns the first valid instant after the gap
+ * For fall-back folds (e.g., 1:30 AM occurs twice when clocks fall back):
+ * - Returns the first occurrence (standard time interpretation)
+ *
+ * @param {number} initialUtcMs
+ * @param {{year: number, month: number, day: number, hour: number, minute: number, second: number}} targetParts
+ * @param {(date: Date) => {year: number, month: number, day: number, hour: number, minute: number, second: number}} getLocalParts
+ * @returns {Date}
+ */
+function convergeLocalInstant(initialUtcMs, targetParts, getLocalParts) {
+  const targetUtc = ymdhmsToUtcMs(targetParts);
+  let t = initialUtcMs;
+  let estimate;
+  let delta = 0;
+
+  for (let i = 0; i < 3; i++) {
+    estimate = new Date(t);
+    const current = getLocalParts(estimate);
+    delta = ymdhmsToUtcMs(current) - targetUtc;
+    if (delta === 0) {
+      return estimate;
+    }
+
+    t -= delta;
+  }
+
+  const finalCandidate = new Date(t);
+  const finalDelta = ymdhmsToUtcMs(getLocalParts(finalCandidate)) - targetUtc;
+  if (finalDelta >= 0) {
+    return finalCandidate;
+  }
+
+  // Fall back to the last estimate, which will be the closest instant before the fold/gap.
+  return estimate;
+}
+
+/**
+ * Interpret a TZID value (IANA, Windows display name, or offset label) and return structured metadata.
+ *
+ * @param {string} value
+ * @returns {{original: string|undefined, iana: string|undefined, offset: string|undefined, offsetMinutes: number|undefined, etc: string|undefined}}
+ */
+function resolveTZID(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    return {
+      original: undefined,
+      iana: undefined,
+      offset: undefined,
+      offsetMinutes: undefined,
+      etc: undefined,
+    };
+  }
+
+  let tz = value;
+  if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
+    tz = guessLocalZone();
+  }
+
+  tz = tz.replace(/^"(.*)"$/, '$1');
+  const original = tz;
+
+  if (tz && (tz.includes(' ') || tz.includes(','))) {
+    const mapped = mapWindowsZone(tz);
+    if (mapped) {
+      tz = mapped;
+    }
+  }
+
+  let offsetMinutes;
+  if (tz && tz.startsWith('(')) {
+    const offsetMatch = tz.match(/([+-]\d{1,2}:\d{2})/);
+    if (offsetMatch) {
+      offsetMinutes = offsetLabelToMinutes(offsetMatch[1]);
+    }
+
+    tz = null;
+  }
+
+  if (offsetMinutes === undefined && tz) {
+    // Handle raw offset TZIDs like "UTC+02:00", "+0530", or "GMT-4" that skip the
+    // Windows-style parentheses but still represent fixed offsets.
+    const mins = offsetLabelToMinutes(tz);
+    if (Number.isFinite(mins)) {
+      offsetMinutes = mins;
+      tz = null;
+    }
+  }
+
+  const exact = findExactZoneMatch(tz);
+  const iana = exact || (tz && isValidIana(tz) ? tz : undefined);
+  const offset = minutesToOffset(offsetMinutes);
+  const etc = minutesToEtcZone(offsetMinutes);
+
+  return {
+    original,
+    iana,
+    offset,
+    offsetMinutes,
+    etc,
+  };
+}
+
+/**
+ * Format a Date as a local wall-time string (`YYYYMMDDTHHmmss`) suitable for RRULE DTSTART emission.
+ * Prefers Intl when a valid IANA zone exists; otherwise falls back to offset arithmetic.
+ *
+ * @param {Date} date
+ * @param {{iana?: string, offsetMinutes?: number}} tzInfo
+ * @returns {string|undefined}
+ */
+function formatDateForRrule(date, tzInfo = {}) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  if (tzInfo.iana && isValidIana(tzInfo.iana)) {
+    const formatter = getFormatter(tzInfo.iana);
+
+    const parts = formatter.formatToParts(date);
+    const numericParts = new Map([
+      ['year', 'year'],
+      ['month', 'month'],
+      ['day', 'day'],
+      ['hour', 'hour'],
+      ['minute', 'minute'],
+      ['second', 'second'],
+    ]);
+    const out = {};
+    for (const part of parts) {
+      const target = numericParts.get(part.type);
+      if (!target) {
+        continue;
+      }
+
+      out[target] = Number(part.value);
+    }
+
+    if (out.hour === 24) {
+      normalizeMidnightParts(date, formatter, out);
+    }
+
+    if (out.year && out.month && out.day && out.hour !== undefined && out.minute !== undefined && out.second !== undefined) {
+      return `${out.year}${pad2(out.month)}${pad2(out.day)}T${pad2(out.hour)}${pad2(out.minute)}${pad2(out.second)}`;
+    }
+  }
+
+  if (Number.isFinite(tzInfo.offsetMinutes)) {
+    const local = new Date(date.getTime() + (tzInfo.offsetMinutes * 60_000));
+    return `${local.getUTCFullYear()}${pad2(local.getUTCMonth() + 1)}${pad2(local.getUTCDate())}T${pad2(local.getUTCHours())}${pad2(local.getUTCMinutes())}${pad2(local.getUTCSeconds())}`;
+  }
+
+  return undefined;
+}
+
+/**
+ * Attach non-enumerable timezone metadata to a Date instance so downstream consumers
+ * can recover the originating TZID without leaking it into JSON/string output.
+ *
+ * @param {Date} date
+ * @param {string|undefined} tzid
+ * @returns {Date|undefined}
+ */
+function attachTz(date, tzid) {
+  if (!date || !tzid) {
+    return date;
+  }
+
+  const hasSameValue = date.tz === tzid;
+  const isEnumerable = Object.prototype.propertyIsEnumerable.call(date, 'tz');
+  if (!hasSameValue || isEnumerable) {
+    Object.defineProperty(date, 'tz', {
+      value: tzid,
+      enumerable: false,
+      configurable: true,
+      writable: false,
+    });
+  }
+
+  return date;
+}
+
+function resolveZone(zone) {
+  if (!zone) {
+    return zone;
+  }
+
+  return aliasMap.get(zone) || zone;
+}
+
+function guessLocalZone() {
+  return new Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+/**
+ * Return the full list of IANA time zone names known to the runtime.
+ *
+ * We depend on Node 18+, so `Intl.supportedValuesOf('timeZone')` is guaranteed
+ * to exist and yields the canonical list without requiring extra guards.
+ */
+function getZoneNames() {
+  return Intl.supportedValuesOf('timeZone');
+}
+
+function findExactZoneMatch(tz) {
+  if (!tz) {
+    return undefined;
+  }
+
+  const z = resolveZone(tz);
+  return isValidIana(z) ? z : undefined;
+}
+
+function isValidIana(zone) {
+  if (!zone) {
+    return false;
+  }
+
+  // Normalize any aliases before validation so cache keys stay consistent
+  const tz = resolveZone(zone);
+  if (!tz) {
+    return false;
+  }
+
+  // Memoized hits avoid repeated Intl constructor work and exception cost
+  if (validIanaCache.has(tz)) {
+    return validIanaCache.get(tz);
+  }
+
+  try {
+    // Rely on Intl throwing for invalid timeZone identifiers
+    // This is more portable across Node builds than Temporal alone
+    new Intl.DateTimeFormat('en-US', {timeZone: tz}).format(new Date(0));
+    validIanaCache.set(tz, true);
+    return true;
+  } catch {
+    validIanaCache.set(tz, false);
+    return false;
+  }
+}
+
+function parseDateTimeInZone(yyyymmddThhmmss, zone) {
+  // Interpret the provided local wall time in the given IANA zone
+  // and return a JS Date in UTC representing that instant.
+  const s = String(yyyymmddThhmmss);
+  // Support basic and extended forms
+  // Try extended first: YYYY-MM-DDTHH:mm:ss
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  let fields;
+  if (m) {
+    fields = {
+      year: Number(m[1]),
+      month: Number(m[2]),
+      day: Number(m[3]),
+      hour: Number(m[4]),
+      minute: Number(m[5]),
+      second: Number(m[6] || 0),
+    };
+  } else {
+    // Basic form: YYYYMMDDTHHmmss or YYYYMMDDTHHmm
+    m = s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/);
+    if (m) {
+      fields = {
+        year: Number(m[1]),
+        month: Number(m[2]),
+        day: Number(m[3]),
+        hour: Number(m[4]),
+        minute: Number(m[5]),
+        second: Number(m[6] || 0),
+      };
+    }
+  }
+
+  if (!fields) {
+    return undefined;
+  }
+
+  const tz = resolveZone(zone);
+  // Defensive: bail out early if the zone can't be resolved to a valid IANA identifier
+  if (!isValidIana(tz)) {
+    return undefined;
+  }
+
+  // Initial guess: interpret local fields as if they were UTC
+  const t = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
+
+  const getLocalParts = date => {
+    const df = getFormatter(tz);
+
+    const parts = df.formatToParts(date);
+    const out = {};
+    for (const p of parts) {
+      if (p.type === 'year') {
+        out.year = Number(p.value);
+      }
+
+      if (p.type === 'month') {
+        out.month = Number(p.value);
+      }
+
+      if (p.type === 'day') {
+        out.day = Number(p.value);
+      }
+
+      if (p.type === 'hour') {
+        out.hour = Number(p.value);
+      }
+
+      if (p.type === 'minute') {
+        out.minute = Number(p.value);
+      }
+
+      if (p.type === 'second') {
+        out.second = Number(p.value);
+      }
+    }
+
+    // Handle 24:00 edge case which some TZs may produce for midnight
+    // This seems only happen with node < 22 and only for certain zones
+    if (Object.hasOwn(out, 'hour') && out.hour === 24) {
+      normalizeMidnightParts(date, df, out);
+    }
+
+    return out;
+  };
+
+  const converged = convergeLocalInstant(t, fields, getLocalParts);
+  return attachTz(converged, zone);
+}
+
+function parseWithOffset(yyyymmddThhmmss, offset) {
+  // Offset like +hh:mm, -hh:mm, +hhmm, -hhmm, optionally prefixed by UTC/GMT
+  const s = String(yyyymmddThhmmss);
+  let m = s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/);
+  // Some feeds emit extended ISO `YYYY-MM-DD[T ]HH:mm[:ss]` strings alongside numeric offsets.
+  // Mirror parseDateTimeInZone by accepting that form too so we don't fall back to local Date semantics.
+  m ||= s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+
+  if (!m) {
+    return undefined;
+  }
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const hour = Number(m[4]);
+  const minute = Number(m[5]);
+  const second = Number(m[6] || 0);
+  const totalMinutes = offsetLabelToMinutes(offset);
+  if (!Number.isFinite(totalMinutes)) {
+    throw new TypeError('Invalid offset string: ' + offset);
+  }
+
+  const utcMs = Date.UTC(year, month - 1, day, hour, minute, second) - (totalMinutes * 60_000);
+  const normalizedOffset = minutesToOffset(totalMinutes);
+  // Preserve original offset metadata so downstream consumers can recover it
+  return attachTz(new Date(utcMs), normalizedOffset);
+}
+
+function utcAdd(date, amount, unit) {
+  if (!(date instanceof Date)) {
+    return undefined;
+  }
+
+  const msPer = {
+    weeks: 7 * 24 * 60 * 60 * 1000,
+    days: 24 * 60 * 60 * 1000,
+    hours: 60 * 60 * 1000,
+    minutes: 60 * 1000,
+    seconds: 1000,
+  };
+  const factor = msPer[unit];
+  if (!factor) {
+    throw new Error('Unsupported unit: ' + unit);
+  }
+
+  return new Date(date.getTime() + (amount * factor));
+}
+
+function linkAlias(arg1, arg2) {
+  // Support both linkAlias('Etc/Unknown|Etc/GMT') and linkAlias('Etc/Unknown','Etc/GMT')
+  if (arg2 === undefined) {
+    const [a, b] = String(arg1).split('|');
+    if (a && b) {
+      aliasMap.set(a, b);
+    }
+
+    return;
+  }
+
+  aliasMap.set(String(arg1), String(arg2));
+}
+
+// Public API
+module.exports = {
+  guessLocalZone,
+  getZoneNames,
+  findExactZoneMatch,
+  isValidIana,
+  parseDateTimeInZone,
+  parseWithOffset,
+  utcAdd,
+  linkAlias,
+  resolveTZID,
+  formatDateForRrule,
+  attachTz,
+  isUtcTimezone,
+};
+
+// Expose some internals for testing
+module.exports.__test__ = {
+  normalizeMidnightParts,
+  isUtcTimezone,
+};
+
+function isUtcTimezone(tz) {
+  if (!tz) {
+    return false;
+  }
+
+  const tzLower = tz.toLowerCase();
+  return tzLower === 'etc/utc' || tzLower === 'utc' || tzLower === 'etc/gmt';
+}
+
+
+/***/ }),
+
+/***/ 4294:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+/* unused reexport */ __nccwpck_require__(4219);
+
+
+/***/ }),
+
+/***/ 4219:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+var __webpack_unused_export__;
+
+
+var net = __nccwpck_require__(1808);
+var tls = __nccwpck_require__(4404);
+var http = __nccwpck_require__(3685);
+var https = __nccwpck_require__(5687);
+var events = __nccwpck_require__(2361);
+var assert = __nccwpck_require__(9491);
+var util = __nccwpck_require__(3837);
+
+
+__webpack_unused_export__ = httpOverHttp;
+__webpack_unused_export__ = httpsOverHttp;
+__webpack_unused_export__ = httpOverHttps;
+__webpack_unused_export__ = httpsOverHttps;
+
+
+function httpOverHttp(options) {
+  var agent = new TunnelingAgent(options);
+  agent.request = http.request;
+  return agent;
+}
+
+function httpsOverHttp(options) {
+  var agent = new TunnelingAgent(options);
+  agent.request = http.request;
+  agent.createSocket = createSecureSocket;
+  agent.defaultPort = 443;
+  return agent;
+}
+
+function httpOverHttps(options) {
+  var agent = new TunnelingAgent(options);
+  agent.request = https.request;
+  return agent;
+}
+
+function httpsOverHttps(options) {
+  var agent = new TunnelingAgent(options);
+  agent.request = https.request;
+  agent.createSocket = createSecureSocket;
+  agent.defaultPort = 443;
+  return agent;
+}
+
+
+function TunnelingAgent(options) {
+  var self = this;
+  self.options = options || {};
+  self.proxyOptions = self.options.proxy || {};
+  self.maxSockets = self.options.maxSockets || http.Agent.defaultMaxSockets;
+  self.requests = [];
+  self.sockets = [];
+
+  self.on('free', function onFree(socket, host, port, localAddress) {
+    var options = toOptions(host, port, localAddress);
+    for (var i = 0, len = self.requests.length; i < len; ++i) {
+      var pending = self.requests[i];
+      if (pending.host === options.host && pending.port === options.port) {
+        // Detect the request to connect same origin server,
+        // reuse the connection.
+        self.requests.splice(i, 1);
+        pending.request.onSocket(socket);
+        return;
+      }
+    }
+    socket.destroy();
+    self.removeSocket(socket);
+  });
+}
+util.inherits(TunnelingAgent, events.EventEmitter);
+
+TunnelingAgent.prototype.addRequest = function addRequest(req, host, port, localAddress) {
+  var self = this;
+  var options = mergeOptions({request: req}, self.options, toOptions(host, port, localAddress));
+
+  if (self.sockets.length >= this.maxSockets) {
+    // We are over limit so we'll add it to the queue.
+    self.requests.push(options);
+    return;
+  }
+
+  // If we are under maxSockets create a new one.
+  self.createSocket(options, function(socket) {
+    socket.on('free', onFree);
+    socket.on('close', onCloseOrRemove);
+    socket.on('agentRemove', onCloseOrRemove);
+    req.onSocket(socket);
+
+    function onFree() {
+      self.emit('free', socket, options);
+    }
+
+    function onCloseOrRemove(err) {
+      self.removeSocket(socket);
+      socket.removeListener('free', onFree);
+      socket.removeListener('close', onCloseOrRemove);
+      socket.removeListener('agentRemove', onCloseOrRemove);
+    }
+  });
+};
+
+TunnelingAgent.prototype.createSocket = function createSocket(options, cb) {
+  var self = this;
+  var placeholder = {};
+  self.sockets.push(placeholder);
+
+  var connectOptions = mergeOptions({}, self.proxyOptions, {
+    method: 'CONNECT',
+    path: options.host + ':' + options.port,
+    agent: false,
+    headers: {
+      host: options.host + ':' + options.port
+    }
+  });
+  if (options.localAddress) {
+    connectOptions.localAddress = options.localAddress;
+  }
+  if (connectOptions.proxyAuth) {
+    connectOptions.headers = connectOptions.headers || {};
+    connectOptions.headers['Proxy-Authorization'] = 'Basic ' +
+        new Buffer(connectOptions.proxyAuth).toString('base64');
+  }
+
+  debug('making CONNECT request');
+  var connectReq = self.request(connectOptions);
+  connectReq.useChunkedEncodingByDefault = false; // for v0.6
+  connectReq.once('response', onResponse); // for v0.6
+  connectReq.once('upgrade', onUpgrade);   // for v0.6
+  connectReq.once('connect', onConnect);   // for v0.7 or later
+  connectReq.once('error', onError);
+  connectReq.end();
+
+  function onResponse(res) {
+    // Very hacky. This is necessary to avoid http-parser leaks.
+    res.upgrade = true;
+  }
+
+  function onUpgrade(res, socket, head) {
+    // Hacky.
+    process.nextTick(function() {
+      onConnect(res, socket, head);
+    });
+  }
+
+  function onConnect(res, socket, head) {
+    connectReq.removeAllListeners();
+    socket.removeAllListeners();
+
+    if (res.statusCode !== 200) {
+      debug('tunneling socket could not be established, statusCode=%d',
+        res.statusCode);
+      socket.destroy();
+      var error = new Error('tunneling socket could not be established, ' +
+        'statusCode=' + res.statusCode);
+      error.code = 'ECONNRESET';
+      options.request.emit('error', error);
+      self.removeSocket(placeholder);
+      return;
+    }
+    if (head.length > 0) {
+      debug('got illegal response body from proxy');
+      socket.destroy();
+      var error = new Error('got illegal response body from proxy');
+      error.code = 'ECONNRESET';
+      options.request.emit('error', error);
+      self.removeSocket(placeholder);
+      return;
+    }
+    debug('tunneling connection has established');
+    self.sockets[self.sockets.indexOf(placeholder)] = socket;
+    return cb(socket);
+  }
+
+  function onError(cause) {
+    connectReq.removeAllListeners();
+
+    debug('tunneling socket could not be established, cause=%s\n',
+          cause.message, cause.stack);
+    var error = new Error('tunneling socket could not be established, ' +
+                          'cause=' + cause.message);
+    error.code = 'ECONNRESET';
+    options.request.emit('error', error);
+    self.removeSocket(placeholder);
+  }
+};
+
+TunnelingAgent.prototype.removeSocket = function removeSocket(socket) {
+  var pos = this.sockets.indexOf(socket)
+  if (pos === -1) {
+    return;
+  }
+  this.sockets.splice(pos, 1);
+
+  var pending = this.requests.shift();
+  if (pending) {
+    // If we have pending requests and a socket gets closed a new one
+    // needs to be created to take over in the pool for the one that closed.
+    this.createSocket(pending, function(socket) {
+      pending.request.onSocket(socket);
+    });
+  }
+};
+
+function createSecureSocket(options, cb) {
+  var self = this;
+  TunnelingAgent.prototype.createSocket.call(self, options, function(socket) {
+    var hostHeader = options.request.getHeader('host');
+    var tlsOptions = mergeOptions({}, self.options, {
+      socket: socket,
+      servername: hostHeader ? hostHeader.replace(/:.*$/, '') : options.host
+    });
+
+    // 0 is dummy port for v0.6
+    var secureSocket = tls.connect(0, tlsOptions);
+    self.sockets[self.sockets.indexOf(socket)] = secureSocket;
+    cb(secureSocket);
+  });
+}
+
+
+function toOptions(host, port, localAddress) {
+  if (typeof host === 'string') { // since v0.10
+    return {
+      host: host,
+      port: port,
+      localAddress: localAddress
+    };
+  }
+  return host; // for v0.11 or later
+}
+
+function mergeOptions(target) {
+  for (var i = 1, len = arguments.length; i < len; ++i) {
+    var overrides = arguments[i];
+    if (typeof overrides === 'object') {
+      var keys = Object.keys(overrides);
+      for (var j = 0, keyLen = keys.length; j < keyLen; ++j) {
+        var k = keys[j];
+        if (overrides[k] !== undefined) {
+          target[k] = overrides[k];
+        }
+      }
+    }
+  }
+  return target;
+}
+
+
+var debug;
+if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
+  debug = function() {
+    var args = Array.prototype.slice.call(arguments);
+    if (typeof args[0] === 'string') {
+      args[0] = 'TUNNEL: ' + args[0];
+    } else {
+      args.unshift('TUNNEL:');
+    }
+    console.error.apply(console, args);
+  }
+} else {
+  debug = function() {};
+}
+__webpack_unused_export__ = debug; // for test
+
+
+/***/ }),
+
+/***/ 1773:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 var __webpack_unused_export__;
 
 
-const Client = __nccwpck_require__(2856)
-const Dispatcher = __nccwpck_require__(245)
-const Pool = __nccwpck_require__(5586)
-const BalancedPool = __nccwpck_require__(1887)
-const Agent = __nccwpck_require__(8560)
-const ProxyAgent = __nccwpck_require__(8095)
-const EnvHttpProxyAgent = __nccwpck_require__(2796)
-const RetryAgent = __nccwpck_require__(1058)
-const errors = __nccwpck_require__(8439)
-const util = __nccwpck_require__(4662)
+const Client = __nccwpck_require__(8176)
+const Dispatcher = __nccwpck_require__(7781)
+const Pool = __nccwpck_require__(177)
+const BalancedPool = __nccwpck_require__(6232)
+const Agent = __nccwpck_require__(1208)
+const ProxyAgent = __nccwpck_require__(5657)
+const EnvHttpProxyAgent = __nccwpck_require__(8374)
+const RetryAgent = __nccwpck_require__(4411)
+const errors = __nccwpck_require__(8045)
+const util = __nccwpck_require__(3983)
 const { InvalidArgumentError } = errors
-const api = __nccwpck_require__(2418)
-const buildConnector = __nccwpck_require__(9791)
-const MockClient = __nccwpck_require__(4001)
-const MockAgent = __nccwpck_require__(9818)
-const MockPool = __nccwpck_require__(65)
-const mockErrors = __nccwpck_require__(4308)
-const RetryHandler = __nccwpck_require__(7423)
-const { getGlobalDispatcher, setGlobalDispatcher } = __nccwpck_require__(768)
-const DecoratorHandler = __nccwpck_require__(6534)
-const RedirectHandler = __nccwpck_require__(7192)
-const createRedirectInterceptor = __nccwpck_require__(6954)
+const api = __nccwpck_require__(4059)
+const buildConnector = __nccwpck_require__(2067)
+const MockClient = __nccwpck_require__(8687)
+const MockAgent = __nccwpck_require__(6771)
+const MockPool = __nccwpck_require__(6193)
+const mockErrors = __nccwpck_require__(888)
+const RetryHandler = __nccwpck_require__(6242)
+const { getGlobalDispatcher, setGlobalDispatcher } = __nccwpck_require__(1892)
+const DecoratorHandler = __nccwpck_require__(4117)
+const RedirectHandler = __nccwpck_require__(649)
+const createRedirectInterceptor = __nccwpck_require__(9099)
 
 Object.assign(Dispatcher.prototype, api)
 
@@ -46,10 +2657,10 @@ __webpack_unused_export__ = DecoratorHandler
 __webpack_unused_export__ = RedirectHandler
 __webpack_unused_export__ = createRedirectInterceptor
 __webpack_unused_export__ = {
-  redirect: __nccwpck_require__(1674),
-  retry: __nccwpck_require__(4004),
-  dump: __nccwpck_require__(8548),
-  dns: __nccwpck_require__(3418)
+  redirect: __nccwpck_require__(7773),
+  retry: __nccwpck_require__(5558),
+  dump: __nccwpck_require__(6090),
+  dns: __nccwpck_require__(7334)
 }
 
 __webpack_unused_export__ = buildConnector
@@ -111,7 +2722,7 @@ function makeDispatcher (fn) {
 __webpack_unused_export__ = setGlobalDispatcher
 __webpack_unused_export__ = getGlobalDispatcher
 
-const fetchImpl = (__nccwpck_require__(5270).fetch)
+const fetchImpl = (__nccwpck_require__(5170).fetch)
 __webpack_unused_export__ = async function fetch (init, options = undefined) {
   try {
     return await fetchImpl(init, options)
@@ -123,39 +2734,39 @@ __webpack_unused_export__ = async function fetch (init, options = undefined) {
     throw err
   }
 }
-/* unused reexport */ __nccwpck_require__(3303).Headers
-/* unused reexport */ __nccwpck_require__(3723).Response
-/* unused reexport */ __nccwpck_require__(4078).Request
-/* unused reexport */ __nccwpck_require__(6550).FormData
+/* unused reexport */ __nccwpck_require__(2991).Headers
+/* unused reexport */ __nccwpck_require__(2583).Response
+/* unused reexport */ __nccwpck_require__(610).Request
+/* unused reexport */ __nccwpck_require__(3162).FormData
 __webpack_unused_export__ = globalThis.File ?? (__nccwpck_require__(2254).File)
-/* unused reexport */ __nccwpck_require__(1712).FileReader
+/* unused reexport */ __nccwpck_require__(5658).FileReader
 
-const { setGlobalOrigin, getGlobalOrigin } = __nccwpck_require__(7561)
+const { setGlobalOrigin, getGlobalOrigin } = __nccwpck_require__(2850)
 
 __webpack_unused_export__ = setGlobalOrigin
 __webpack_unused_export__ = getGlobalOrigin
 
-const { CacheStorage } = __nccwpck_require__(3596)
-const { kConstruct } = __nccwpck_require__(4632)
+const { CacheStorage } = __nccwpck_require__(6847)
+const { kConstruct } = __nccwpck_require__(2562)
 
 // Cache & CacheStorage are tightly coupled with fetch. Even if it may run
 // in an older version of Node, it doesn't have any use without fetch.
 __webpack_unused_export__ = new CacheStorage(kConstruct)
 
-const { deleteCookie, getCookies, getSetCookies, setCookie } = __nccwpck_require__(7646)
+const { deleteCookie, getCookies, getSetCookies, setCookie } = __nccwpck_require__(2193)
 
 __webpack_unused_export__ = deleteCookie
 __webpack_unused_export__ = getCookies
 __webpack_unused_export__ = getSetCookies
 __webpack_unused_export__ = setCookie
 
-const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(2779)
+const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(7704)
 
 __webpack_unused_export__ = parseMIMEType
 __webpack_unused_export__ = serializeAMimeType
 
-const { CloseEvent, ErrorEvent, MessageEvent } = __nccwpck_require__(901)
-/* unused reexport */ __nccwpck_require__(1072).WebSocket
+const { CloseEvent, ErrorEvent, MessageEvent } = __nccwpck_require__(5033)
+/* unused reexport */ __nccwpck_require__(2846).WebSocket
 __webpack_unused_export__ = CloseEvent
 __webpack_unused_export__ = ErrorEvent
 __webpack_unused_export__ = MessageEvent
@@ -171,18 +2782,18 @@ __webpack_unused_export__ = MockPool
 __webpack_unused_export__ = MockAgent
 __webpack_unused_export__ = mockErrors
 
-const { EventSource } = __nccwpck_require__(2194)
+const { EventSource } = __nccwpck_require__(6127)
 
 __webpack_unused_export__ = EventSource
 
 
 /***/ }),
 
-/***/ 5283:
+/***/ 7032:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { addAbortListener } = __nccwpck_require__(4662)
-const { RequestAbortedError } = __nccwpck_require__(8439)
+const { addAbortListener } = __nccwpck_require__(3983)
+const { RequestAbortedError } = __nccwpck_require__(8045)
 
 const kListener = Symbol('kListener')
 const kSignal = Symbol('kSignal')
@@ -242,16 +2853,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3641:
+/***/ 9744:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const assert = __nccwpck_require__(8061)
 const { AsyncResource } = __nccwpck_require__(2761)
-const { InvalidArgumentError, SocketError } = __nccwpck_require__(8439)
-const util = __nccwpck_require__(4662)
-const { addSignal, removeSignal } = __nccwpck_require__(5283)
+const { InvalidArgumentError, SocketError } = __nccwpck_require__(8045)
+const util = __nccwpck_require__(3983)
+const { addSignal, removeSignal } = __nccwpck_require__(7032)
 
 class ConnectHandler extends AsyncResource {
   constructor (opts, callback) {
@@ -357,7 +2968,7 @@ module.exports = connect
 
 /***/ }),
 
-/***/ 2371:
+/***/ 8752:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -371,10 +2982,10 @@ const {
   InvalidArgumentError,
   InvalidReturnValueError,
   RequestAbortedError
-} = __nccwpck_require__(8439)
-const util = __nccwpck_require__(4662)
+} = __nccwpck_require__(8045)
+const util = __nccwpck_require__(3983)
 const { AsyncResource } = __nccwpck_require__(2761)
-const { addSignal, removeSignal } = __nccwpck_require__(5283)
+const { addSignal, removeSignal } = __nccwpck_require__(7032)
 const assert = __nccwpck_require__(8061)
 
 const kResume = Symbol('resume')
@@ -615,16 +3226,16 @@ module.exports = pipeline
 
 /***/ }),
 
-/***/ 4003:
+/***/ 5448:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const assert = __nccwpck_require__(8061)
-const { Readable } = __nccwpck_require__(4081)
-const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8439)
-const util = __nccwpck_require__(4662)
-const { getResolveErrorBodyCallback } = __nccwpck_require__(2)
+const { Readable } = __nccwpck_require__(3858)
+const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8045)
+const util = __nccwpck_require__(3983)
+const { getResolveErrorBodyCallback } = __nccwpck_require__(7474)
 const { AsyncResource } = __nccwpck_require__(2761)
 
 class RequestHandler extends AsyncResource {
@@ -836,18 +3447,18 @@ module.exports.RequestHandler = RequestHandler
 
 /***/ }),
 
-/***/ 9214:
+/***/ 5395:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const assert = __nccwpck_require__(8061)
 const { finished, PassThrough } = __nccwpck_require__(4492)
-const { InvalidArgumentError, InvalidReturnValueError } = __nccwpck_require__(8439)
-const util = __nccwpck_require__(4662)
-const { getResolveErrorBodyCallback } = __nccwpck_require__(2)
+const { InvalidArgumentError, InvalidReturnValueError } = __nccwpck_require__(8045)
+const util = __nccwpck_require__(3983)
+const { getResolveErrorBodyCallback } = __nccwpck_require__(7474)
 const { AsyncResource } = __nccwpck_require__(2761)
-const { addSignal, removeSignal } = __nccwpck_require__(5283)
+const { addSignal, removeSignal } = __nccwpck_require__(7032)
 
 class StreamHandler extends AsyncResource {
   constructor (opts, factory, callback) {
@@ -1063,15 +3674,15 @@ module.exports = stream
 
 /***/ }),
 
-/***/ 2409:
+/***/ 6923:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { InvalidArgumentError, SocketError } = __nccwpck_require__(8439)
+const { InvalidArgumentError, SocketError } = __nccwpck_require__(8045)
 const { AsyncResource } = __nccwpck_require__(2761)
-const util = __nccwpck_require__(4662)
-const { addSignal, removeSignal } = __nccwpck_require__(5283)
+const util = __nccwpck_require__(3983)
+const { addSignal, removeSignal } = __nccwpck_require__(7032)
 const assert = __nccwpck_require__(8061)
 
 class UpgradeHandler extends AsyncResource {
@@ -1178,21 +3789,21 @@ module.exports = upgrade
 
 /***/ }),
 
-/***/ 2418:
+/***/ 4059:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-module.exports.request = __nccwpck_require__(4003)
-module.exports.stream = __nccwpck_require__(9214)
-module.exports.pipeline = __nccwpck_require__(2371)
-module.exports.upgrade = __nccwpck_require__(2409)
-module.exports.connect = __nccwpck_require__(3641)
+module.exports.request = __nccwpck_require__(5448)
+module.exports.stream = __nccwpck_require__(5395)
+module.exports.pipeline = __nccwpck_require__(8752)
+module.exports.upgrade = __nccwpck_require__(6923)
+module.exports.connect = __nccwpck_require__(9744)
 
 
 /***/ }),
 
-/***/ 4081:
+/***/ 3858:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 // Ported from https://github.com/nodejs/undici/pull/907
@@ -1201,9 +3812,9 @@ module.exports.connect = __nccwpck_require__(3641)
 
 const assert = __nccwpck_require__(8061)
 const { Readable } = __nccwpck_require__(4492)
-const { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError } = __nccwpck_require__(8439)
-const util = __nccwpck_require__(4662)
-const { ReadableStreamFrom } = __nccwpck_require__(4662)
+const { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError } = __nccwpck_require__(8045)
+const util = __nccwpck_require__(3983)
+const { ReadableStreamFrom } = __nccwpck_require__(3983)
 
 const kConsume = Symbol('kConsume')
 const kReading = Symbol('kReading')
@@ -1584,15 +4195,15 @@ module.exports = { Readable: BodyReadable, chunksDecode }
 
 /***/ }),
 
-/***/ 2:
+/***/ 7474:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const assert = __nccwpck_require__(8061)
 const {
   ResponseStatusCodeError
-} = __nccwpck_require__(8439)
+} = __nccwpck_require__(8045)
 
-const { chunksDecode } = __nccwpck_require__(4081)
+const { chunksDecode } = __nccwpck_require__(3858)
 const CHUNK_LIMIT = 128 * 1024
 
 async function getResolveErrorBodyCallback ({ callback, body, contentType, statusCode, statusMessage, headers }) {
@@ -1684,16 +4295,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9791:
+/***/ 2067:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const net = __nccwpck_require__(7503)
 const assert = __nccwpck_require__(8061)
-const util = __nccwpck_require__(4662)
-const { InvalidArgumentError, ConnectTimeoutError } = __nccwpck_require__(8439)
-const timers = __nccwpck_require__(2843)
+const util = __nccwpck_require__(3983)
+const { InvalidArgumentError, ConnectTimeoutError } = __nccwpck_require__(8045)
+const timers = __nccwpck_require__(5194)
 
 function noop () {}
 
@@ -1931,7 +4542,7 @@ module.exports = buildConnector
 
 /***/ }),
 
-/***/ 5959:
+/***/ 4462:
 /***/ ((module) => {
 
 
@@ -2056,7 +4667,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5676:
+/***/ 8438:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -2265,7 +4876,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8439:
+/***/ 8045:
 /***/ ((module) => {
 
 
@@ -2678,7 +5289,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1776:
+/***/ 2905:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -2686,7 +5297,7 @@ module.exports = {
 const {
   InvalidArgumentError,
   NotSupportedError
-} = __nccwpck_require__(8439)
+} = __nccwpck_require__(8045)
 const assert = __nccwpck_require__(8061)
 const {
   isValidHTTPToken,
@@ -2701,9 +5312,9 @@ const {
   validateHandler,
   getServerName,
   normalizedMethodRecords
-} = __nccwpck_require__(4662)
-const { channels } = __nccwpck_require__(5676)
-const { headerNameLowerCasedRecord } = __nccwpck_require__(5959)
+} = __nccwpck_require__(3983)
+const { channels } = __nccwpck_require__(8438)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(4462)
 
 // Verifies that a given path is valid does not contain control chars \x00 to \x20
 const invalidPathRegex = /[^\u0021-\u00ff]/
@@ -3080,7 +5691,7 @@ module.exports = Request
 
 /***/ }),
 
-/***/ 7293:
+/***/ 2785:
 /***/ ((module) => {
 
 module.exports = {
@@ -3154,7 +5765,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8327:
+/***/ 7506:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -3162,7 +5773,7 @@ module.exports = {
 const {
   wellknownHeaderNames,
   headerNameLowerCasedRecord
-} = __nccwpck_require__(5959)
+} = __nccwpck_require__(4462)
 
 class TstNode {
   /** @type {any} */
@@ -3313,13 +5924,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4662:
+/***/ 3983:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const assert = __nccwpck_require__(8061)
-const { kDestroyed, kBodyUsed, kListeners, kBody } = __nccwpck_require__(7293)
+const { kDestroyed, kBodyUsed, kListeners, kBody } = __nccwpck_require__(2785)
 const { IncomingMessage } = __nccwpck_require__(8849)
 const stream = __nccwpck_require__(4492)
 const net = __nccwpck_require__(7503)
@@ -3327,9 +5938,9 @@ const { Blob } = __nccwpck_require__(2254)
 const nodeUtil = __nccwpck_require__(7261)
 const { stringify } = __nccwpck_require__(9630)
 const { EventEmitter: EE } = __nccwpck_require__(5673)
-const { InvalidArgumentError } = __nccwpck_require__(8439)
-const { headerNameLowerCasedRecord } = __nccwpck_require__(5959)
-const { tree } = __nccwpck_require__(8327)
+const { InvalidArgumentError } = __nccwpck_require__(8045)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(4462)
+const { tree } = __nccwpck_require__(7506)
 
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(v => Number(v))
 
@@ -4039,18 +6650,18 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8560:
+/***/ 1208:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { InvalidArgumentError } = __nccwpck_require__(8439)
-const { kClients, kRunning, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(7293)
-const DispatcherBase = __nccwpck_require__(2130)
-const Pool = __nccwpck_require__(5586)
-const Client = __nccwpck_require__(2856)
-const util = __nccwpck_require__(4662)
-const createRedirectInterceptor = __nccwpck_require__(6954)
+const { InvalidArgumentError } = __nccwpck_require__(8045)
+const { kClients, kRunning, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(2785)
+const DispatcherBase = __nccwpck_require__(1544)
+const Pool = __nccwpck_require__(177)
+const Client = __nccwpck_require__(8176)
+const util = __nccwpck_require__(3983)
+const createRedirectInterceptor = __nccwpck_require__(9099)
 
 const kOnConnect = Symbol('onConnect')
 const kOnDisconnect = Symbol('onDisconnect')
@@ -4175,7 +6786,7 @@ module.exports = Agent
 
 /***/ }),
 
-/***/ 1887:
+/***/ 6232:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -4183,7 +6794,7 @@ module.exports = Agent
 const {
   BalancedPoolMissingUpstreamError,
   InvalidArgumentError
-} = __nccwpck_require__(8439)
+} = __nccwpck_require__(8045)
 const {
   PoolBase,
   kClients,
@@ -4191,10 +6802,10 @@ const {
   kAddClient,
   kRemoveClient,
   kGetDispatcher
-} = __nccwpck_require__(6891)
-const Pool = __nccwpck_require__(5586)
-const { kUrl, kInterceptors } = __nccwpck_require__(7293)
-const { parseOrigin } = __nccwpck_require__(4662)
+} = __nccwpck_require__(494)
+const Pool = __nccwpck_require__(177)
+const { kUrl, kInterceptors } = __nccwpck_require__(2785)
+const { parseOrigin } = __nccwpck_require__(3983)
 const kFactory = Symbol('factory')
 
 const kOptions = Symbol('options')
@@ -4391,7 +7002,7 @@ module.exports = BalancedPool
 
 /***/ }),
 
-/***/ 8359:
+/***/ 3264:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -4399,9 +7010,9 @@ module.exports = BalancedPool
 /* global WebAssembly */
 
 const assert = __nccwpck_require__(8061)
-const util = __nccwpck_require__(4662)
-const { channels } = __nccwpck_require__(5676)
-const timers = __nccwpck_require__(2843)
+const util = __nccwpck_require__(3983)
+const { channels } = __nccwpck_require__(8438)
+const timers = __nccwpck_require__(5194)
 const {
   RequestContentLengthMismatchError,
   ResponseContentLengthMismatchError,
@@ -4413,7 +7024,7 @@ const {
   BodyTimeoutError,
   HTTPParserError,
   ResponseExceededMaxSizeError
-} = __nccwpck_require__(8439)
+} = __nccwpck_require__(8045)
 const {
   kUrl,
   kReset,
@@ -4446,9 +7057,9 @@ const {
   kOnError,
   kResume,
   kHTTPContext
-} = __nccwpck_require__(7293)
+} = __nccwpck_require__(2785)
 
-const constants = __nccwpck_require__(9754)
+const constants = __nccwpck_require__(953)
 const EMPTY_BUF = Buffer.alloc(0)
 const FastBuffer = Buffer[Symbol.species]
 const addListener = util.addListener
@@ -4457,11 +7068,11 @@ const removeAllListeners = util.removeAllListeners
 let extractBody
 
 async function lazyllhttp () {
-  const llhttpWasmData = process.env.JEST_WORKER_ID ? __nccwpck_require__(6229) : undefined
+  const llhttpWasmData = process.env.JEST_WORKER_ID ? __nccwpck_require__(1145) : undefined
 
   let mod
   try {
-    mod = await WebAssembly.compile(__nccwpck_require__(5028))
+    mod = await WebAssembly.compile(__nccwpck_require__(5627))
   } catch (e) {
     /* istanbul ignore next */
 
@@ -4469,7 +7080,7 @@ async function lazyllhttp () {
     // being enabled, but the occurring of this other error
     // * https://github.com/emscripten-core/emscripten/issues/11495
     // got me to remove that check to avoid breaking Node 12.
-    mod = await WebAssembly.compile(llhttpWasmData || __nccwpck_require__(6229))
+    mod = await WebAssembly.compile(llhttpWasmData || __nccwpck_require__(1145))
   }
 
   return await WebAssembly.instantiate(mod, {
@@ -5264,7 +7875,7 @@ function writeH1 (client, request) {
 
   if (util.isFormDataLike(body)) {
     if (!extractBody) {
-      extractBody = (__nccwpck_require__(7811).extractBody)
+      extractBody = (__nccwpck_require__(6682).extractBody)
     }
 
     const [bodyStream, contentType] = extractBody(body)
@@ -5768,20 +8379,20 @@ module.exports = connectH1
 
 /***/ }),
 
-/***/ 1918:
+/***/ 296:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const assert = __nccwpck_require__(8061)
 const { pipeline } = __nccwpck_require__(4492)
-const util = __nccwpck_require__(4662)
+const util = __nccwpck_require__(3983)
 const {
   RequestContentLengthMismatchError,
   RequestAbortedError,
   SocketError,
   InformationalError
-} = __nccwpck_require__(8439)
+} = __nccwpck_require__(8045)
 const {
   kUrl,
   kReset,
@@ -5800,7 +8411,7 @@ const {
   kResume,
   kSize,
   kHTTPContext
-} = __nccwpck_require__(7293)
+} = __nccwpck_require__(2785)
 
 const kOpenStreams = Symbol('open streams')
 
@@ -6159,7 +8770,7 @@ function writeH2 (client, request) {
   let contentLength = util.bodyLength(body)
 
   if (util.isFormDataLike(body)) {
-    extractBody ??= (__nccwpck_require__(7811).extractBody)
+    extractBody ??= (__nccwpck_require__(6682).extractBody)
 
     const [bodyStream, contentType] = extractBody(body)
     headers['content-type'] = contentType
@@ -6519,7 +9130,7 @@ module.exports = connectH2
 
 /***/ }),
 
-/***/ 2856:
+/***/ 8176:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 // @ts-check
@@ -6529,16 +9140,16 @@ module.exports = connectH2
 const assert = __nccwpck_require__(8061)
 const net = __nccwpck_require__(7503)
 const http = __nccwpck_require__(8849)
-const util = __nccwpck_require__(4662)
-const { channels } = __nccwpck_require__(5676)
-const Request = __nccwpck_require__(1776)
-const DispatcherBase = __nccwpck_require__(2130)
+const util = __nccwpck_require__(3983)
+const { channels } = __nccwpck_require__(8438)
+const Request = __nccwpck_require__(2905)
+const DispatcherBase = __nccwpck_require__(1544)
 const {
   InvalidArgumentError,
   InformationalError,
   ClientDestroyedError
-} = __nccwpck_require__(8439)
-const buildConnector = __nccwpck_require__(9791)
+} = __nccwpck_require__(8045)
+const buildConnector = __nccwpck_require__(2067)
 const {
   kUrl,
   kServerName,
@@ -6580,9 +9191,9 @@ const {
   kHTTPContext,
   kMaxConcurrentStreams,
   kResume
-} = __nccwpck_require__(7293)
-const connectH1 = __nccwpck_require__(8359)
-const connectH2 = __nccwpck_require__(1918)
+} = __nccwpck_require__(2785)
+const connectH1 = __nccwpck_require__(3264)
+const connectH2 = __nccwpck_require__(296)
 let deprecatedInterceptorWarned = false
 
 const kClosedResolve = Symbol('kClosedResolve')
@@ -6888,7 +9499,7 @@ class Client extends DispatcherBase {
   }
 }
 
-const createRedirectInterceptor = __nccwpck_require__(6954)
+const createRedirectInterceptor = __nccwpck_require__(9099)
 
 function onError (client, err) {
   if (
@@ -7148,18 +9759,18 @@ module.exports = Client
 
 /***/ }),
 
-/***/ 2130:
+/***/ 1544:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const Dispatcher = __nccwpck_require__(245)
+const Dispatcher = __nccwpck_require__(7781)
 const {
   ClientDestroyedError,
   ClientClosedError,
   InvalidArgumentError
-} = __nccwpck_require__(8439)
-const { kDestroy, kClose, kClosed, kDestroyed, kDispatch, kInterceptors } = __nccwpck_require__(7293)
+} = __nccwpck_require__(8045)
+const { kDestroy, kClose, kClosed, kDestroyed, kDispatch, kInterceptors } = __nccwpck_require__(2785)
 
 const kOnDestroyed = Symbol('onDestroyed')
 const kOnClosed = Symbol('onClosed')
@@ -7345,7 +9956,7 @@ module.exports = DispatcherBase
 
 /***/ }),
 
-/***/ 245:
+/***/ 7781:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -7417,15 +10028,15 @@ module.exports = Dispatcher
 
 /***/ }),
 
-/***/ 2796:
+/***/ 8374:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const DispatcherBase = __nccwpck_require__(2130)
-const { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = __nccwpck_require__(7293)
-const ProxyAgent = __nccwpck_require__(8095)
-const Agent = __nccwpck_require__(8560)
+const DispatcherBase = __nccwpck_require__(1544)
+const { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = __nccwpck_require__(2785)
+const ProxyAgent = __nccwpck_require__(5657)
+const Agent = __nccwpck_require__(1208)
 
 const DEFAULT_PORTS = {
   'http:': 80,
@@ -7584,7 +10195,7 @@ module.exports = EnvHttpProxyAgent
 
 /***/ }),
 
-/***/ 4484:
+/***/ 5158:
 /***/ ((module) => {
 
 /* eslint-disable */
@@ -7708,15 +10319,15 @@ module.exports = class FixedQueue {
 
 /***/ }),
 
-/***/ 6891:
+/***/ 494:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const DispatcherBase = __nccwpck_require__(2130)
-const FixedQueue = __nccwpck_require__(4484)
-const { kConnected, kSize, kRunning, kPending, kQueued, kBusy, kFree, kUrl, kClose, kDestroy, kDispatch } = __nccwpck_require__(7293)
-const PoolStats = __nccwpck_require__(8006)
+const DispatcherBase = __nccwpck_require__(1544)
+const FixedQueue = __nccwpck_require__(5158)
+const { kConnected, kSize, kRunning, kPending, kQueued, kBusy, kFree, kUrl, kClose, kDestroy, kDispatch } = __nccwpck_require__(2785)
+const PoolStats = __nccwpck_require__(4667)
 
 const kClients = Symbol('clients')
 const kNeedDrain = Symbol('needDrain')
@@ -7909,10 +10520,10 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8006:
+/***/ 4667:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { kFree, kConnected, kPending, kQueued, kRunning, kSize } = __nccwpck_require__(7293)
+const { kFree, kConnected, kPending, kQueued, kRunning, kSize } = __nccwpck_require__(2785)
 const kPool = Symbol('pool')
 
 class PoolStats {
@@ -7950,7 +10561,7 @@ module.exports = PoolStats
 
 /***/ }),
 
-/***/ 5586:
+/***/ 177:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -7961,14 +10572,14 @@ const {
   kNeedDrain,
   kAddClient,
   kGetDispatcher
-} = __nccwpck_require__(6891)
-const Client = __nccwpck_require__(2856)
+} = __nccwpck_require__(494)
+const Client = __nccwpck_require__(8176)
 const {
   InvalidArgumentError
-} = __nccwpck_require__(8439)
-const util = __nccwpck_require__(4662)
-const { kUrl, kInterceptors } = __nccwpck_require__(7293)
-const buildConnector = __nccwpck_require__(9791)
+} = __nccwpck_require__(8045)
+const util = __nccwpck_require__(3983)
+const { kUrl, kInterceptors } = __nccwpck_require__(2785)
+const buildConnector = __nccwpck_require__(2067)
 
 const kOptions = Symbol('options')
 const kConnections = Symbol('connections')
@@ -8064,19 +10675,19 @@ module.exports = Pool
 
 /***/ }),
 
-/***/ 8095:
+/***/ 5657:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { kProxy, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(7293)
+const { kProxy, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(2785)
 const { URL } = __nccwpck_require__(1041)
-const Agent = __nccwpck_require__(8560)
-const Pool = __nccwpck_require__(5586)
-const DispatcherBase = __nccwpck_require__(2130)
-const { InvalidArgumentError, RequestAbortedError, SecureProxyConnectionError } = __nccwpck_require__(8439)
-const buildConnector = __nccwpck_require__(9791)
-const Client = __nccwpck_require__(2856)
+const Agent = __nccwpck_require__(1208)
+const Pool = __nccwpck_require__(177)
+const DispatcherBase = __nccwpck_require__(1544)
+const { InvalidArgumentError, RequestAbortedError, SecureProxyConnectionError } = __nccwpck_require__(8045)
+const buildConnector = __nccwpck_require__(2067)
+const Client = __nccwpck_require__(8176)
 
 const kAgent = Symbol('proxy agent')
 const kClient = Symbol('proxy client')
@@ -8345,13 +10956,13 @@ module.exports = ProxyAgent
 
 /***/ }),
 
-/***/ 1058:
+/***/ 4411:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const Dispatcher = __nccwpck_require__(245)
-const RetryHandler = __nccwpck_require__(7423)
+const Dispatcher = __nccwpck_require__(7781)
+const RetryHandler = __nccwpck_require__(6242)
 
 class RetryAgent extends Dispatcher {
   #agent = null
@@ -8387,7 +10998,7 @@ module.exports = RetryAgent
 
 /***/ }),
 
-/***/ 768:
+/***/ 1892:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -8395,8 +11006,8 @@ module.exports = RetryAgent
 // We include a version number for the Dispatcher API. In case of breaking changes,
 // this version number must be increased to avoid conflicts.
 const globalDispatcher = Symbol.for('undici.globalDispatcher.1')
-const { InvalidArgumentError } = __nccwpck_require__(8439)
-const Agent = __nccwpck_require__(8560)
+const { InvalidArgumentError } = __nccwpck_require__(8045)
+const Agent = __nccwpck_require__(1208)
 
 if (getGlobalDispatcher() === undefined) {
   setGlobalDispatcher(new Agent())
@@ -8426,7 +11037,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6534:
+/***/ 4117:
 /***/ ((module) => {
 
 
@@ -8477,15 +11088,15 @@ module.exports = class DecoratorHandler {
 
 /***/ }),
 
-/***/ 7192:
+/***/ 649:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const util = __nccwpck_require__(4662)
-const { kBodyUsed } = __nccwpck_require__(7293)
+const util = __nccwpck_require__(3983)
+const { kBodyUsed } = __nccwpck_require__(2785)
 const assert = __nccwpck_require__(8061)
-const { InvalidArgumentError } = __nccwpck_require__(8439)
+const { InvalidArgumentError } = __nccwpck_require__(8045)
 const EE = __nccwpck_require__(5673)
 
 const redirectableStatusCodes = [300, 301, 302, 303, 307, 308]
@@ -8716,20 +11327,20 @@ module.exports = RedirectHandler
 
 /***/ }),
 
-/***/ 7423:
+/***/ 6242:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 const assert = __nccwpck_require__(8061)
 
-const { kRetryHandlerDefaultRetry } = __nccwpck_require__(7293)
-const { RequestRetryError } = __nccwpck_require__(8439)
+const { kRetryHandlerDefaultRetry } = __nccwpck_require__(2785)
+const { RequestRetryError } = __nccwpck_require__(8045)
 const {
   isDisturbed,
   parseHeaders,
   parseRangeHeader,
   wrapRequestBody
-} = __nccwpck_require__(4662)
+} = __nccwpck_require__(3983)
 
 function calculateRetryAfterHeader (retryAfter) {
   const current = Date.now()
@@ -9097,14 +11708,14 @@ module.exports = RetryHandler
 
 /***/ }),
 
-/***/ 3418:
+/***/ 7334:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 const { isIP } = __nccwpck_require__(7503)
 const { lookup } = __nccwpck_require__(604)
-const DecoratorHandler = __nccwpck_require__(6534)
-const { InvalidArgumentError, InformationalError } = __nccwpck_require__(8439)
+const DecoratorHandler = __nccwpck_require__(4117)
+const { InvalidArgumentError, InformationalError } = __nccwpck_require__(8045)
 const maxInt = Math.pow(2, 31) - 1
 
 class DNSInstance {
@@ -9479,14 +12090,14 @@ module.exports = interceptorOpts => {
 
 /***/ }),
 
-/***/ 8548:
+/***/ 6090:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const util = __nccwpck_require__(4662)
-const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8439)
-const DecoratorHandler = __nccwpck_require__(6534)
+const util = __nccwpck_require__(3983)
+const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8045)
+const DecoratorHandler = __nccwpck_require__(4117)
 
 class DumpHandler extends DecoratorHandler {
   #maxSize = 1024 * 1024
@@ -9609,12 +12220,12 @@ module.exports = createDumpInterceptor
 
 /***/ }),
 
-/***/ 6954:
+/***/ 9099:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const RedirectHandler = __nccwpck_require__(7192)
+const RedirectHandler = __nccwpck_require__(649)
 
 function createRedirectInterceptor ({ maxRedirections: defaultMaxRedirections }) {
   return (dispatch) => {
@@ -9637,11 +12248,11 @@ module.exports = createRedirectInterceptor
 
 /***/ }),
 
-/***/ 1674:
+/***/ 7773:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
-const RedirectHandler = __nccwpck_require__(7192)
+const RedirectHandler = __nccwpck_require__(649)
 
 module.exports = opts => {
   const globalMaxRedirections = opts?.maxRedirections
@@ -9668,11 +12279,11 @@ module.exports = opts => {
 
 /***/ }),
 
-/***/ 4004:
+/***/ 5558:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
-const RetryHandler = __nccwpck_require__(7423)
+const RetryHandler = __nccwpck_require__(6242)
 
 module.exports = globalOpts => {
   return dispatch => {
@@ -9694,13 +12305,13 @@ module.exports = globalOpts => {
 
 /***/ }),
 
-/***/ 9754:
+/***/ 953:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SPECIAL_HEADERS = exports.HEADER_STATE = exports.MINOR = exports.MAJOR = exports.CONNECTION_TOKEN_CHARS = exports.HEADER_CHARS = exports.TOKEN = exports.STRICT_TOKEN = exports.HEX = exports.URL_CHAR = exports.STRICT_URL_CHAR = exports.USERINFO_CHARS = exports.MARK = exports.ALPHANUM = exports.NUM = exports.HEX_MAP = exports.NUM_MAP = exports.ALPHA = exports.FINISH = exports.H_METHOD_MAP = exports.METHOD_MAP = exports.METHODS_RTSP = exports.METHODS_ICE = exports.METHODS_HTTP = exports.METHODS = exports.LENIENT_FLAGS = exports.FLAGS = exports.TYPE = exports.ERROR = void 0;
-const utils_1 = __nccwpck_require__(5128);
+const utils_1 = __nccwpck_require__(1891);
 // C headers
 var ERROR;
 (function (ERROR) {
@@ -9978,7 +12589,7 @@ exports.SPECIAL_HEADERS = {
 
 /***/ }),
 
-/***/ 6229:
+/***/ 1145:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -9990,7 +12601,7 @@ module.exports = Buffer.from('AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAX8AYAJ/fwBgBH9/f3
 
 /***/ }),
 
-/***/ 5028:
+/***/ 5627:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -10002,7 +12613,7 @@ module.exports = Buffer.from('AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAX8AYAJ/fwBgBH9/f3
 
 /***/ }),
 
-/***/ 5128:
+/***/ 1891:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -10023,13 +12634,13 @@ exports.enumToMap = enumToMap;
 
 /***/ }),
 
-/***/ 9818:
+/***/ 6771:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { kClients } = __nccwpck_require__(7293)
-const Agent = __nccwpck_require__(8560)
+const { kClients } = __nccwpck_require__(2785)
+const Agent = __nccwpck_require__(1208)
 const {
   kAgent,
   kMockAgentSet,
@@ -10040,14 +12651,14 @@ const {
   kGetNetConnect,
   kOptions,
   kFactory
-} = __nccwpck_require__(7806)
-const MockClient = __nccwpck_require__(4001)
-const MockPool = __nccwpck_require__(65)
-const { matchValue, buildMockOptions } = __nccwpck_require__(4710)
-const { InvalidArgumentError, UndiciError } = __nccwpck_require__(8439)
-const Dispatcher = __nccwpck_require__(245)
-const Pluralizer = __nccwpck_require__(2532)
-const PendingInterceptorsFormatter = __nccwpck_require__(764)
+} = __nccwpck_require__(4347)
+const MockClient = __nccwpck_require__(8687)
+const MockPool = __nccwpck_require__(6193)
+const { matchValue, buildMockOptions } = __nccwpck_require__(9323)
+const { InvalidArgumentError, UndiciError } = __nccwpck_require__(8045)
+const Dispatcher = __nccwpck_require__(7781)
+const Pluralizer = __nccwpck_require__(8891)
+const PendingInterceptorsFormatter = __nccwpck_require__(6823)
 
 class MockAgent extends Dispatcher {
   constructor (opts) {
@@ -10190,14 +12801,14 @@ module.exports = MockAgent
 
 /***/ }),
 
-/***/ 4001:
+/***/ 8687:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { promisify } = __nccwpck_require__(7261)
-const Client = __nccwpck_require__(2856)
-const { buildMockDispatch } = __nccwpck_require__(4710)
+const Client = __nccwpck_require__(8176)
+const { buildMockDispatch } = __nccwpck_require__(9323)
 const {
   kDispatches,
   kMockAgent,
@@ -10206,10 +12817,10 @@ const {
   kOrigin,
   kOriginalDispatch,
   kConnected
-} = __nccwpck_require__(7806)
-const { MockInterceptor } = __nccwpck_require__(8742)
-const Symbols = __nccwpck_require__(7293)
-const { InvalidArgumentError } = __nccwpck_require__(8439)
+} = __nccwpck_require__(4347)
+const { MockInterceptor } = __nccwpck_require__(410)
+const Symbols = __nccwpck_require__(2785)
+const { InvalidArgumentError } = __nccwpck_require__(8045)
 
 /**
  * MockClient provides an API that extends the Client to influence the mockDispatches.
@@ -10256,12 +12867,12 @@ module.exports = MockClient
 
 /***/ }),
 
-/***/ 4308:
+/***/ 888:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { UndiciError } = __nccwpck_require__(8439)
+const { UndiciError } = __nccwpck_require__(8045)
 
 const kMockNotMatchedError = Symbol.for('undici.error.UND_MOCK_ERR_MOCK_NOT_MATCHED')
 
@@ -10291,12 +12902,12 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8742:
+/***/ 410:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { getResponseData, buildKey, addMockDispatch } = __nccwpck_require__(4710)
+const { getResponseData, buildKey, addMockDispatch } = __nccwpck_require__(9323)
 const {
   kDispatches,
   kDispatchKey,
@@ -10304,9 +12915,9 @@ const {
   kDefaultTrailers,
   kContentLength,
   kMockDispatch
-} = __nccwpck_require__(7806)
-const { InvalidArgumentError } = __nccwpck_require__(8439)
-const { buildURL } = __nccwpck_require__(4662)
+} = __nccwpck_require__(4347)
+const { InvalidArgumentError } = __nccwpck_require__(8045)
+const { buildURL } = __nccwpck_require__(3983)
 
 /**
  * Defines the scope API for an interceptor reply
@@ -10505,14 +13116,14 @@ module.exports.MockScope = MockScope
 
 /***/ }),
 
-/***/ 65:
+/***/ 6193:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { promisify } = __nccwpck_require__(7261)
-const Pool = __nccwpck_require__(5586)
-const { buildMockDispatch } = __nccwpck_require__(4710)
+const Pool = __nccwpck_require__(177)
+const { buildMockDispatch } = __nccwpck_require__(9323)
 const {
   kDispatches,
   kMockAgent,
@@ -10521,10 +13132,10 @@ const {
   kOrigin,
   kOriginalDispatch,
   kConnected
-} = __nccwpck_require__(7806)
-const { MockInterceptor } = __nccwpck_require__(8742)
-const Symbols = __nccwpck_require__(7293)
-const { InvalidArgumentError } = __nccwpck_require__(8439)
+} = __nccwpck_require__(4347)
+const { MockInterceptor } = __nccwpck_require__(410)
+const Symbols = __nccwpck_require__(2785)
+const { InvalidArgumentError } = __nccwpck_require__(8045)
 
 /**
  * MockPool provides an API that extends the Pool to influence the mockDispatches.
@@ -10571,7 +13182,7 @@ module.exports = MockPool
 
 /***/ }),
 
-/***/ 7806:
+/***/ 4347:
 /***/ ((module) => {
 
 
@@ -10601,20 +13212,20 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4710:
+/***/ 9323:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { MockNotMatchedError } = __nccwpck_require__(4308)
+const { MockNotMatchedError } = __nccwpck_require__(888)
 const {
   kDispatches,
   kMockAgent,
   kOriginalDispatch,
   kOrigin,
   kGetNetConnect
-} = __nccwpck_require__(7806)
-const { buildURL } = __nccwpck_require__(4662)
+} = __nccwpck_require__(4347)
+const { buildURL } = __nccwpck_require__(3983)
 const { STATUS_CODES } = __nccwpck_require__(8849)
 const {
   types: {
@@ -10975,7 +13586,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 764:
+/***/ 6823:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -11025,7 +13636,7 @@ module.exports = class PendingInterceptorsFormatter {
 
 /***/ }),
 
-/***/ 2532:
+/***/ 8891:
 /***/ ((module) => {
 
 
@@ -11061,7 +13672,7 @@ module.exports = class Pluralizer {
 
 /***/ }),
 
-/***/ 2843:
+/***/ 5194:
 /***/ ((module) => {
 
 
@@ -11491,20 +14102,20 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9678:
+/***/ 1028:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { kConstruct } = __nccwpck_require__(4632)
-const { urlEquals, getFieldValues } = __nccwpck_require__(9608)
-const { kEnumerableProperty, isDisturbed } = __nccwpck_require__(4662)
-const { webidl } = __nccwpck_require__(3779)
-const { Response, cloneResponse, fromInnerResponse } = __nccwpck_require__(3723)
-const { Request, fromInnerRequest } = __nccwpck_require__(4078)
-const { kState } = __nccwpck_require__(8647)
-const { fetching } = __nccwpck_require__(5270)
-const { urlIsHttpHttpsScheme, createDeferredPromise, readAllBytes } = __nccwpck_require__(1120)
+const { kConstruct } = __nccwpck_require__(2562)
+const { urlEquals, getFieldValues } = __nccwpck_require__(8531)
+const { kEnumerableProperty, isDisturbed } = __nccwpck_require__(3983)
+const { webidl } = __nccwpck_require__(4890)
+const { Response, cloneResponse, fromInnerResponse } = __nccwpck_require__(2583)
+const { Request, fromInnerRequest } = __nccwpck_require__(610)
+const { kState } = __nccwpck_require__(749)
+const { fetching } = __nccwpck_require__(5170)
+const { urlIsHttpHttpsScheme, createDeferredPromise, readAllBytes } = __nccwpck_require__(1310)
 const assert = __nccwpck_require__(8061)
 
 /**
@@ -12357,15 +14968,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3596:
+/***/ 6847:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { kConstruct } = __nccwpck_require__(4632)
-const { Cache } = __nccwpck_require__(9678)
-const { webidl } = __nccwpck_require__(3779)
-const { kEnumerableProperty } = __nccwpck_require__(4662)
+const { kConstruct } = __nccwpck_require__(2562)
+const { Cache } = __nccwpck_require__(1028)
+const { webidl } = __nccwpck_require__(4890)
+const { kEnumerableProperty } = __nccwpck_require__(3983)
 
 class CacheStorage {
   /**
@@ -12516,26 +15127,26 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4632:
+/***/ 2562:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 module.exports = {
-  kConstruct: (__nccwpck_require__(7293).kConstruct)
+  kConstruct: (__nccwpck_require__(2785).kConstruct)
 }
 
 
 /***/ }),
 
-/***/ 9608:
+/***/ 8531:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const assert = __nccwpck_require__(8061)
-const { URLSerializer } = __nccwpck_require__(2779)
-const { isValidHeaderName } = __nccwpck_require__(1120)
+const { URLSerializer } = __nccwpck_require__(7704)
+const { isValidHeaderName } = __nccwpck_require__(1310)
 
 /**
  * @see https://url.spec.whatwg.org/#concept-url-equals
@@ -12580,7 +15191,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9761:
+/***/ 7762:
 /***/ ((module) => {
 
 
@@ -12599,15 +15210,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7646:
+/***/ 2193:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { parseSetCookie } = __nccwpck_require__(7693)
-const { stringify } = __nccwpck_require__(2096)
-const { webidl } = __nccwpck_require__(3779)
-const { Headers } = __nccwpck_require__(3303)
+const { parseSetCookie } = __nccwpck_require__(3903)
+const { stringify } = __nccwpck_require__(4806)
+const { webidl } = __nccwpck_require__(4890)
+const { Headers } = __nccwpck_require__(2991)
 
 /**
  * @typedef {Object} Cookie
@@ -12790,14 +15401,14 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7693:
+/***/ 3903:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { maxNameValuePairSize, maxAttributeValueSize } = __nccwpck_require__(9761)
-const { isCTLExcludingHtab } = __nccwpck_require__(2096)
-const { collectASequenceOfCodePointsFast } = __nccwpck_require__(2779)
+const { maxNameValuePairSize, maxAttributeValueSize } = __nccwpck_require__(7762)
+const { isCTLExcludingHtab } = __nccwpck_require__(4806)
+const { collectASequenceOfCodePointsFast } = __nccwpck_require__(7704)
 const assert = __nccwpck_require__(8061)
 
 /**
@@ -13114,7 +15725,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2096:
+/***/ 4806:
 /***/ ((module) => {
 
 
@@ -13403,12 +16014,12 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7612:
+/***/ 4185:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 const { Transform } = __nccwpck_require__(4492)
-const { isASCIINumber, isValidLastEventId } = __nccwpck_require__(2887)
+const { isASCIINumber, isValidLastEventId } = __nccwpck_require__(8865)
 
 /**
  * @type {number[]} BOM
@@ -13808,22 +16419,22 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2194:
+/***/ 6127:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { pipeline } = __nccwpck_require__(4492)
-const { fetching } = __nccwpck_require__(5270)
-const { makeRequest } = __nccwpck_require__(4078)
-const { webidl } = __nccwpck_require__(3779)
-const { EventSourceStream } = __nccwpck_require__(7612)
-const { parseMIMEType } = __nccwpck_require__(2779)
-const { createFastMessageEvent } = __nccwpck_require__(901)
-const { isNetworkError } = __nccwpck_require__(3723)
-const { delay } = __nccwpck_require__(2887)
-const { kEnumerableProperty } = __nccwpck_require__(4662)
-const { environmentSettingsObject } = __nccwpck_require__(1120)
+const { fetching } = __nccwpck_require__(5170)
+const { makeRequest } = __nccwpck_require__(610)
+const { webidl } = __nccwpck_require__(4890)
+const { EventSourceStream } = __nccwpck_require__(4185)
+const { parseMIMEType } = __nccwpck_require__(7704)
+const { createFastMessageEvent } = __nccwpck_require__(5033)
+const { isNetworkError } = __nccwpck_require__(2583)
+const { delay } = __nccwpck_require__(8865)
+const { kEnumerableProperty } = __nccwpck_require__(3983)
+const { environmentSettingsObject } = __nccwpck_require__(1310)
 
 let experimentalWarned = false
 
@@ -14295,7 +16906,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2887:
+/***/ 8865:
 /***/ ((module) => {
 
 
@@ -14339,12 +16950,12 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7811:
+/***/ 6682:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const util = __nccwpck_require__(4662)
+const util = __nccwpck_require__(3983)
 const {
   ReadableStreamFrom,
   isBlobLike,
@@ -14354,16 +16965,16 @@ const {
   fullyReadBody,
   extractMimeType,
   utf8DecodeBytes
-} = __nccwpck_require__(1120)
-const { FormData } = __nccwpck_require__(6550)
-const { kState } = __nccwpck_require__(8647)
-const { webidl } = __nccwpck_require__(3779)
+} = __nccwpck_require__(1310)
+const { FormData } = __nccwpck_require__(3162)
+const { kState } = __nccwpck_require__(749)
+const { webidl } = __nccwpck_require__(4890)
 const { Blob } = __nccwpck_require__(2254)
 const assert = __nccwpck_require__(8061)
 const { isErrored, isDisturbed } = __nccwpck_require__(4492)
 const { isArrayBuffer } = __nccwpck_require__(3746)
-const { serializeAMimeType } = __nccwpck_require__(2779)
-const { multipartFormDataParser } = __nccwpck_require__(8306)
+const { serializeAMimeType } = __nccwpck_require__(7704)
+const { multipartFormDataParser } = __nccwpck_require__(7991)
 let random
 
 try {
@@ -14875,7 +17486,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6243:
+/***/ 8160:
 /***/ ((module) => {
 
 
@@ -15006,7 +17617,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2779:
+/***/ 7704:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -15757,12 +18368,12 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8802:
+/***/ 1922:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { kConnected, kSize } = __nccwpck_require__(7293)
+const { kConnected, kSize } = __nccwpck_require__(2785)
 
 class CompatWeakRef {
   constructor (value) {
@@ -15810,14 +18421,14 @@ module.exports = function () {
 
 /***/ }),
 
-/***/ 2424:
+/***/ 1879:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { Blob, File } = __nccwpck_require__(2254)
-const { kState } = __nccwpck_require__(8647)
-const { webidl } = __nccwpck_require__(3779)
+const { kState } = __nccwpck_require__(749)
+const { webidl } = __nccwpck_require__(4890)
 
 // TODO(@KhafraDev): remove
 class FileLike {
@@ -15943,16 +18554,16 @@ module.exports = { FileLike, isFileLike }
 
 /***/ }),
 
-/***/ 8306:
+/***/ 7991:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { isUSVString, bufferToLowerCasedHeaderName } = __nccwpck_require__(4662)
-const { utf8DecodeBytes } = __nccwpck_require__(1120)
-const { HTTP_TOKEN_CODEPOINTS, isomorphicDecode } = __nccwpck_require__(2779)
-const { isFileLike } = __nccwpck_require__(2424)
-const { makeEntry } = __nccwpck_require__(6550)
+const { isUSVString, bufferToLowerCasedHeaderName } = __nccwpck_require__(3983)
+const { utf8DecodeBytes } = __nccwpck_require__(1310)
+const { HTTP_TOKEN_CODEPOINTS, isomorphicDecode } = __nccwpck_require__(7704)
+const { isFileLike } = __nccwpck_require__(1879)
+const { makeEntry } = __nccwpck_require__(3162)
 const assert = __nccwpck_require__(8061)
 const { File: NodeFile } = __nccwpck_require__(2254)
 
@@ -16424,16 +19035,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6550:
+/***/ 3162:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { isBlobLike, iteratorMixin } = __nccwpck_require__(1120)
-const { kState } = __nccwpck_require__(8647)
-const { kEnumerableProperty } = __nccwpck_require__(4662)
-const { FileLike, isFileLike } = __nccwpck_require__(2424)
-const { webidl } = __nccwpck_require__(3779)
+const { isBlobLike, iteratorMixin } = __nccwpck_require__(1310)
+const { kState } = __nccwpck_require__(749)
+const { kEnumerableProperty } = __nccwpck_require__(3983)
+const { FileLike, isFileLike } = __nccwpck_require__(1879)
+const { webidl } = __nccwpck_require__(4890)
 const { File: NativeFile } = __nccwpck_require__(2254)
 const nodeUtil = __nccwpck_require__(7261)
 
@@ -16683,7 +19294,7 @@ module.exports = { FormData, makeEntry }
 
 /***/ }),
 
-/***/ 7561:
+/***/ 2850:
 /***/ ((module) => {
 
 
@@ -16730,21 +19341,21 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3303:
+/***/ 2991:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 // https://github.com/Ethan-Arrowood/undici-fetch
 
 
 
-const { kConstruct } = __nccwpck_require__(7293)
-const { kEnumerableProperty } = __nccwpck_require__(4662)
+const { kConstruct } = __nccwpck_require__(2785)
+const { kEnumerableProperty } = __nccwpck_require__(3983)
 const {
   iteratorMixin,
   isValidHeaderName,
   isValidHeaderValue
-} = __nccwpck_require__(1120)
-const { webidl } = __nccwpck_require__(3779)
+} = __nccwpck_require__(1310)
+const { webidl } = __nccwpck_require__(4890)
 const assert = __nccwpck_require__(8061)
 const util = __nccwpck_require__(7261)
 
@@ -17424,7 +20035,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5270:
+/***/ 5170:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 // https://github.com/Ethan-Arrowood/undici-fetch
@@ -17437,9 +20048,9 @@ const {
   filterResponse,
   makeResponse,
   fromInnerResponse
-} = __nccwpck_require__(3723)
-const { HeadersList } = __nccwpck_require__(3303)
-const { Request, cloneRequest } = __nccwpck_require__(4078)
+} = __nccwpck_require__(2583)
+const { HeadersList } = __nccwpck_require__(2991)
+const { Request, cloneRequest } = __nccwpck_require__(610)
 const zlib = __nccwpck_require__(5628)
 const {
   bytesMatch,
@@ -17475,23 +20086,23 @@ const {
   buildContentRange,
   createInflate,
   extractMimeType
-} = __nccwpck_require__(1120)
-const { kState, kDispatcher } = __nccwpck_require__(8647)
+} = __nccwpck_require__(1310)
+const { kState, kDispatcher } = __nccwpck_require__(749)
 const assert = __nccwpck_require__(8061)
-const { safelyExtractBody, extractBody } = __nccwpck_require__(7811)
+const { safelyExtractBody, extractBody } = __nccwpck_require__(6682)
 const {
   redirectStatusSet,
   nullBodyStatus,
   safeMethodsSet,
   requestBodyHeader,
   subresourceSet
-} = __nccwpck_require__(6243)
+} = __nccwpck_require__(8160)
 const EE = __nccwpck_require__(5673)
 const { Readable, pipeline, finished } = __nccwpck_require__(4492)
-const { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = __nccwpck_require__(4662)
-const { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = __nccwpck_require__(2779)
-const { getGlobalDispatcher } = __nccwpck_require__(768)
-const { webidl } = __nccwpck_require__(3779)
+const { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = __nccwpck_require__(3983)
+const { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = __nccwpck_require__(7704)
+const { getGlobalDispatcher } = __nccwpck_require__(1892)
+const { webidl } = __nccwpck_require__(4890)
 const { STATUS_CODES } = __nccwpck_require__(8849)
 const GET_OR_HEAD = ['GET', 'HEAD']
 
@@ -19703,23 +22314,23 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4078:
+/***/ 610:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 /* globals AbortController */
 
 
 
-const { extractBody, mixinBody, cloneBody, bodyUnusable } = __nccwpck_require__(7811)
-const { Headers, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = __nccwpck_require__(3303)
-const { FinalizationRegistry } = __nccwpck_require__(8802)()
-const util = __nccwpck_require__(4662)
+const { extractBody, mixinBody, cloneBody, bodyUnusable } = __nccwpck_require__(6682)
+const { Headers, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = __nccwpck_require__(2991)
+const { FinalizationRegistry } = __nccwpck_require__(1922)()
+const util = __nccwpck_require__(3983)
 const nodeUtil = __nccwpck_require__(7261)
 const {
   isValidHTTPToken,
   sameOrigin,
   environmentSettingsObject
-} = __nccwpck_require__(1120)
+} = __nccwpck_require__(1310)
 const {
   forbiddenMethodsSet,
   corsSafeListedMethodsSet,
@@ -19729,12 +22340,12 @@ const {
   requestCredentials,
   requestCache,
   requestDuplex
-} = __nccwpck_require__(6243)
+} = __nccwpck_require__(8160)
 const { kEnumerableProperty, normalizedMethodRecordsBase, normalizedMethodRecords } = util
-const { kHeaders, kSignal, kState, kDispatcher } = __nccwpck_require__(8647)
-const { webidl } = __nccwpck_require__(3779)
-const { URLSerializer } = __nccwpck_require__(2779)
-const { kConstruct } = __nccwpck_require__(7293)
+const { kHeaders, kSignal, kState, kDispatcher } = __nccwpck_require__(749)
+const { webidl } = __nccwpck_require__(4890)
+const { URLSerializer } = __nccwpck_require__(7704)
+const { kConstruct } = __nccwpck_require__(2785)
 const assert = __nccwpck_require__(8061)
 const { getMaxListeners, setMaxListeners, getEventListeners, defaultMaxListeners } = __nccwpck_require__(5673)
 
@@ -20747,14 +23358,14 @@ module.exports = { Request, makeRequest, fromInnerRequest, cloneRequest }
 
 /***/ }),
 
-/***/ 3723:
+/***/ 2583:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { Headers, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = __nccwpck_require__(3303)
-const { extractBody, cloneBody, mixinBody, hasFinalizationRegistry, streamRegistry, bodyUnusable } = __nccwpck_require__(7811)
-const util = __nccwpck_require__(4662)
+const { Headers, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = __nccwpck_require__(2991)
+const { extractBody, cloneBody, mixinBody, hasFinalizationRegistry, streamRegistry, bodyUnusable } = __nccwpck_require__(6682)
+const util = __nccwpck_require__(3983)
 const nodeUtil = __nccwpck_require__(7261)
 const { kEnumerableProperty } = util
 const {
@@ -20766,16 +23377,16 @@ const {
   isErrorLike,
   isomorphicEncode,
   environmentSettingsObject: relevantRealm
-} = __nccwpck_require__(1120)
+} = __nccwpck_require__(1310)
 const {
   redirectStatusSet,
   nullBodyStatus
-} = __nccwpck_require__(6243)
-const { kState, kHeaders } = __nccwpck_require__(8647)
-const { webidl } = __nccwpck_require__(3779)
-const { FormData } = __nccwpck_require__(6550)
-const { URLSerializer } = __nccwpck_require__(2779)
-const { kConstruct } = __nccwpck_require__(7293)
+} = __nccwpck_require__(8160)
+const { kState, kHeaders } = __nccwpck_require__(749)
+const { webidl } = __nccwpck_require__(4890)
+const { FormData } = __nccwpck_require__(3162)
+const { URLSerializer } = __nccwpck_require__(7704)
+const { kConstruct } = __nccwpck_require__(2785)
 const assert = __nccwpck_require__(8061)
 const { types } = __nccwpck_require__(7261)
 
@@ -21364,7 +23975,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8647:
+/***/ 749:
 /***/ ((module) => {
 
 
@@ -21380,21 +23991,21 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1120:
+/***/ 1310:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { Transform } = __nccwpck_require__(4492)
 const zlib = __nccwpck_require__(5628)
-const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(6243)
-const { getGlobalOrigin } = __nccwpck_require__(7561)
-const { collectASequenceOfCodePoints, collectAnHTTPQuotedString, removeChars, parseMIMEType } = __nccwpck_require__(2779)
+const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(8160)
+const { getGlobalOrigin } = __nccwpck_require__(2850)
+const { collectASequenceOfCodePoints, collectAnHTTPQuotedString, removeChars, parseMIMEType } = __nccwpck_require__(7704)
 const { performance } = __nccwpck_require__(8846)
-const { isBlobLike, ReadableStreamFrom, isValidHTTPToken, normalizedMethodRecordsBase } = __nccwpck_require__(4662)
+const { isBlobLike, ReadableStreamFrom, isValidHTTPToken, normalizedMethodRecordsBase } = __nccwpck_require__(3983)
 const assert = __nccwpck_require__(8061)
 const { isUint8Array } = __nccwpck_require__(3746)
-const { webidl } = __nccwpck_require__(3779)
+const { webidl } = __nccwpck_require__(4890)
 
 let supportedHashes = []
 
@@ -23019,14 +25630,14 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3779:
+/***/ 4890:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { types, inspect } = __nccwpck_require__(7261)
 const { markAsUncloneable } = __nccwpck_require__(4086)
-const { toUSVString } = __nccwpck_require__(4662)
+const { toUSVString } = __nccwpck_require__(3983)
 
 /** @type {import('../../../types/webidl').Webidl} */
 const webidl = {}
@@ -23721,7 +26332,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8096:
+/***/ 352:
 /***/ ((module) => {
 
 
@@ -24018,7 +26629,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1712:
+/***/ 5658:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -24027,16 +26638,16 @@ const {
   staticPropertyDescriptors,
   readOperation,
   fireAProgressEvent
-} = __nccwpck_require__(1628)
+} = __nccwpck_require__(7445)
 const {
   kState,
   kError,
   kResult,
   kEvents,
   kAborted
-} = __nccwpck_require__(1928)
-const { webidl } = __nccwpck_require__(3779)
-const { kEnumerableProperty } = __nccwpck_require__(4662)
+} = __nccwpck_require__(6383)
+const { webidl } = __nccwpck_require__(4890)
+const { kEnumerableProperty } = __nccwpck_require__(3983)
 
 class FileReader extends EventTarget {
   constructor () {
@@ -24369,12 +26980,12 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7208:
+/***/ 9231:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { webidl } = __nccwpck_require__(3779)
+const { webidl } = __nccwpck_require__(4890)
 
 const kState = Symbol('ProgressEvent state')
 
@@ -24454,7 +27065,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1928:
+/***/ 6383:
 /***/ ((module) => {
 
 
@@ -24471,7 +27082,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1628:
+/***/ 7445:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
@@ -24482,10 +27093,10 @@ const {
   kResult,
   kAborted,
   kLastProgressEventFired
-} = __nccwpck_require__(1928)
-const { ProgressEvent } = __nccwpck_require__(7208)
-const { getEncoding } = __nccwpck_require__(8096)
-const { serializeAMimeType, parseMIMEType } = __nccwpck_require__(2779)
+} = __nccwpck_require__(6383)
+const { ProgressEvent } = __nccwpck_require__(9231)
+const { getEncoding } = __nccwpck_require__(352)
+const { serializeAMimeType, parseMIMEType } = __nccwpck_require__(7704)
 const { types } = __nccwpck_require__(7261)
 const { StringDecoder } = __nccwpck_require__(1576)
 const { btoa } = __nccwpck_require__(2254)
@@ -24869,27 +27480,27 @@ module.exports = {
 
 /***/ }),
 
-/***/ 803:
+/***/ 8380:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { uid, states, sentCloseFrameState, emptyBuffer, opcodes } = __nccwpck_require__(3745)
+const { uid, states, sentCloseFrameState, emptyBuffer, opcodes } = __nccwpck_require__(3587)
 const {
   kReadyState,
   kSentClose,
   kByteParser,
   kReceivedClose,
   kResponse
-} = __nccwpck_require__(5149)
-const { fireEvent, failWebsocketConnection, isClosing, isClosed, isEstablished, parseExtensions } = __nccwpck_require__(2802)
-const { channels } = __nccwpck_require__(5676)
-const { CloseEvent } = __nccwpck_require__(901)
-const { makeRequest } = __nccwpck_require__(4078)
-const { fetching } = __nccwpck_require__(5270)
-const { Headers, getHeadersList } = __nccwpck_require__(3303)
-const { getDecodeSplit } = __nccwpck_require__(1120)
-const { WebsocketFrameSend } = __nccwpck_require__(5729)
+} = __nccwpck_require__(9769)
+const { fireEvent, failWebsocketConnection, isClosing, isClosed, isEstablished, parseExtensions } = __nccwpck_require__(9902)
+const { channels } = __nccwpck_require__(8438)
+const { CloseEvent } = __nccwpck_require__(5033)
+const { makeRequest } = __nccwpck_require__(610)
+const { fetching } = __nccwpck_require__(5170)
+const { Headers, getHeadersList } = __nccwpck_require__(2991)
+const { getDecodeSplit } = __nccwpck_require__(1310)
+const { WebsocketFrameSend } = __nccwpck_require__(2391)
 
 /** @type {import('crypto')} */
 let crypto
@@ -25247,7 +27858,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3745:
+/***/ 3587:
 /***/ ((module) => {
 
 
@@ -25320,14 +27931,14 @@ module.exports = {
 
 /***/ }),
 
-/***/ 901:
+/***/ 5033:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { webidl } = __nccwpck_require__(3779)
-const { kEnumerableProperty } = __nccwpck_require__(4662)
-const { kConstruct } = __nccwpck_require__(7293)
+const { webidl } = __nccwpck_require__(4890)
+const { kEnumerableProperty } = __nccwpck_require__(3983)
+const { kConstruct } = __nccwpck_require__(2785)
 const { MessagePort } = __nccwpck_require__(4086)
 
 /**
@@ -25656,12 +28267,12 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5729:
+/***/ 2391:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { maxUnsigned16Bit } = __nccwpck_require__(3745)
+const { maxUnsigned16Bit } = __nccwpck_require__(3587)
 
 const BUFFER_SIZE = 16386
 
@@ -25759,13 +28370,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2218:
+/***/ 8236:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { createInflateRaw, Z_DEFAULT_WINDOWBITS } = __nccwpck_require__(5628)
-const { isValidClientWindowBits } = __nccwpck_require__(2802)
+const { isValidClientWindowBits } = __nccwpck_require__(9902)
 
 const tail = Buffer.from([0x00, 0x00, 0xff, 0xff])
 const kBuffer = Symbol('kBuffer')
@@ -25836,16 +28447,16 @@ module.exports = { PerMessageDeflate }
 
 /***/ }),
 
-/***/ 5986:
+/***/ 5442:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 const { Writable } = __nccwpck_require__(4492)
 const assert = __nccwpck_require__(8061)
-const { parserStates, opcodes, states, emptyBuffer, sentCloseFrameState } = __nccwpck_require__(3745)
-const { kReadyState, kSentClose, kResponse, kReceivedClose } = __nccwpck_require__(5149)
-const { channels } = __nccwpck_require__(5676)
+const { parserStates, opcodes, states, emptyBuffer, sentCloseFrameState } = __nccwpck_require__(3587)
+const { kReadyState, kSentClose, kResponse, kReceivedClose } = __nccwpck_require__(9769)
+const { channels } = __nccwpck_require__(8438)
 const {
   isValidStatusCode,
   isValidOpcode,
@@ -25855,10 +28466,10 @@ const {
   isControlFrame,
   isTextBinaryFrame,
   isContinuationFrame
-} = __nccwpck_require__(2802)
-const { WebsocketFrameSend } = __nccwpck_require__(5729)
-const { closeWebSocketConnection } = __nccwpck_require__(803)
-const { PerMessageDeflate } = __nccwpck_require__(2218)
+} = __nccwpck_require__(9902)
+const { WebsocketFrameSend } = __nccwpck_require__(2391)
+const { closeWebSocketConnection } = __nccwpck_require__(8380)
+const { PerMessageDeflate } = __nccwpck_require__(8236)
 
 // This code was influenced by ws released under the MIT license.
 // Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>
@@ -26267,14 +28878,14 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5192:
+/***/ 4821:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { WebsocketFrameSend } = __nccwpck_require__(5729)
-const { opcodes, sendHints } = __nccwpck_require__(3745)
-const FixedQueue = __nccwpck_require__(4484)
+const { WebsocketFrameSend } = __nccwpck_require__(2391)
+const { opcodes, sendHints } = __nccwpck_require__(3587)
+const FixedQueue = __nccwpck_require__(5158)
 
 /** @type {typeof Uint8Array} */
 const FastBuffer = Buffer[Symbol.species]
@@ -26378,7 +28989,7 @@ module.exports = { SendQueue }
 
 /***/ }),
 
-/***/ 5149:
+/***/ 9769:
 /***/ ((module) => {
 
 
@@ -26397,16 +29008,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2802:
+/***/ 9902:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { kReadyState, kController, kResponse, kBinaryType, kWebSocketURL } = __nccwpck_require__(5149)
-const { states, opcodes } = __nccwpck_require__(3745)
-const { ErrorEvent, createFastMessageEvent } = __nccwpck_require__(901)
+const { kReadyState, kController, kResponse, kBinaryType, kWebSocketURL } = __nccwpck_require__(9769)
+const { states, opcodes } = __nccwpck_require__(3587)
+const { ErrorEvent, createFastMessageEvent } = __nccwpck_require__(5033)
 const { isUtf8 } = __nccwpck_require__(2254)
-const { collectASequenceOfCodePointsFast, removeHTTPWhitespace } = __nccwpck_require__(2779)
+const { collectASequenceOfCodePointsFast, removeHTTPWhitespace } = __nccwpck_require__(7704)
 
 /* globals Blob */
 
@@ -26718,15 +29329,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1072:
+/***/ 2846:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
-const { webidl } = __nccwpck_require__(3779)
-const { URLSerializer } = __nccwpck_require__(2779)
-const { environmentSettingsObject } = __nccwpck_require__(1120)
-const { staticPropertyDescriptors, states, sentCloseFrameState, sendHints } = __nccwpck_require__(3745)
+const { webidl } = __nccwpck_require__(4890)
+const { URLSerializer } = __nccwpck_require__(7704)
+const { environmentSettingsObject } = __nccwpck_require__(1310)
+const { staticPropertyDescriptors, states, sentCloseFrameState, sendHints } = __nccwpck_require__(3587)
 const {
   kWebSocketURL,
   kReadyState,
@@ -26735,21 +29346,21 @@ const {
   kResponse,
   kSentClose,
   kByteParser
-} = __nccwpck_require__(5149)
+} = __nccwpck_require__(9769)
 const {
   isConnecting,
   isEstablished,
   isClosing,
   isValidSubprotocol,
   fireEvent
-} = __nccwpck_require__(2802)
-const { establishWebSocketConnection, closeWebSocketConnection } = __nccwpck_require__(803)
-const { ByteParser } = __nccwpck_require__(5986)
-const { kEnumerableProperty, isBlobLike } = __nccwpck_require__(4662)
-const { getGlobalDispatcher } = __nccwpck_require__(768)
+} = __nccwpck_require__(9902)
+const { establishWebSocketConnection, closeWebSocketConnection } = __nccwpck_require__(8380)
+const { ByteParser } = __nccwpck_require__(5442)
+const { kEnumerableProperty, isBlobLike } = __nccwpck_require__(3983)
+const { getGlobalDispatcher } = __nccwpck_require__(1892)
 const { types } = __nccwpck_require__(7261)
-const { ErrorEvent, CloseEvent } = __nccwpck_require__(901)
-const { SendQueue } = __nccwpck_require__(5192)
+const { ErrorEvent, CloseEvent } = __nccwpck_require__(5033)
+const { SendQueue } = __nccwpck_require__(4821)
 
 // https://websockets.spec.whatwg.org/#interface-definition
 class WebSocket extends EventTarget {
@@ -27313,2617 +29924,6 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1778:
-/***/ ((module) => {
-
-class JSBI extends Array{constructor(i,_){if(super(i),this.sign=_,Object.setPrototypeOf(this,JSBI.prototype),i>JSBI.__kMaxLength)throw new RangeError("Maximum BigInt size exceeded")}static BigInt(i){var _=Math.floor,t=Number.isFinite;if("number"==typeof i){if(0===i)return JSBI.__zero();if(JSBI.__isOneDigitInt(i))return 0>i?JSBI.__oneDigit(-i,!0):JSBI.__oneDigit(i,!1);if(!t(i)||_(i)!==i)throw new RangeError("The number "+i+" cannot be converted to BigInt because it is not an integer");return JSBI.__fromDouble(i)}if("string"==typeof i){const _=JSBI.__fromString(i);if(null===_)throw new SyntaxError("Cannot convert "+i+" to a BigInt");return _}if("boolean"==typeof i)return!0===i?JSBI.__oneDigit(1,!1):JSBI.__zero();if("object"==typeof i){if(i.constructor===JSBI)return i;const _=JSBI.__toPrimitive(i);return JSBI.BigInt(_)}throw new TypeError("Cannot convert "+i+" to a BigInt")}toDebugString(){const i=["BigInt["];for(const _ of this)i.push((_?(_>>>0).toString(16):_)+", ");return i.push("]"),i.join("")}toString(i=10){if(2>i||36<i)throw new RangeError("toString() radix argument must be between 2 and 36");return 0===this.length?"0":0==(i&i-1)?JSBI.__toStringBasePowerOfTwo(this,i):JSBI.__toStringGeneric(this,i,!1)}valueOf(){throw new Error("Convert JSBI instances to native numbers using `toNumber`.")}static toNumber(i){const _=i.length;if(0===_)return 0;if(1===_){const _=i.__unsignedDigit(0);return i.sign?-_:_}const t=i.__digit(_-1),e=JSBI.__clz30(t),n=30*_-e;if(1024<n)return i.sign?-Infinity:1/0;let g=n-1,o=t,s=_-1;const l=e+3;let r=32===l?0:o<<l;r>>>=12;const a=l-12;let u=12<=l?0:o<<20+l,d=20+l;for(0<a&&0<s&&(s--,o=i.__digit(s),r|=o>>>30-a,u=o<<a+2,d=a+2);0<d&&0<s;)s--,o=i.__digit(s),u|=30<=d?o<<d-30:o>>>30-d,d-=30;const h=JSBI.__decideRounding(i,d,s,o);if((1===h||0===h&&1==(1&u))&&(u=u+1>>>0,0===u&&(r++,0!=r>>>20&&(r=0,g++,1023<g))))return i.sign?-Infinity:1/0;const m=i.sign?-2147483648:0;return g=g+1023<<20,JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]=m|g|r,JSBI.__kBitConversionInts[JSBI.__kBitConversionIntLow]=u,JSBI.__kBitConversionDouble[0]}static unaryMinus(i){if(0===i.length)return i;const _=i.__copy();return _.sign=!i.sign,_}static bitwiseNot(i){return i.sign?JSBI.__absoluteSubOne(i).__trim():JSBI.__absoluteAddOne(i,!0)}static exponentiate(i,_){if(_.sign)throw new RangeError("Exponent must be positive");if(0===_.length)return JSBI.__oneDigit(1,!1);if(0===i.length)return i;if(1===i.length&&1===i.__digit(0))return i.sign&&0==(1&_.__digit(0))?JSBI.unaryMinus(i):i;if(1<_.length)throw new RangeError("BigInt too big");let t=_.__unsignedDigit(0);if(1===t)return i;if(t>=JSBI.__kMaxLengthBits)throw new RangeError("BigInt too big");if(1===i.length&&2===i.__digit(0)){const _=1+(0|t/30),e=i.sign&&0!=(1&t),n=new JSBI(_,e);n.__initializeDigits();const g=1<<t%30;return n.__setDigit(_-1,g),n}let e=null,n=i;for(0!=(1&t)&&(e=i),t>>=1;0!==t;t>>=1)n=JSBI.multiply(n,n),0!=(1&t)&&(null===e?e=n:e=JSBI.multiply(e,n));return e}static multiply(_,t){if(0===_.length)return _;if(0===t.length)return t;let i=_.length+t.length;30<=_.__clzmsd()+t.__clzmsd()&&i--;const e=new JSBI(i,_.sign!==t.sign);e.__initializeDigits();for(let n=0;n<_.length;n++)JSBI.__multiplyAccumulate(t,_.__digit(n),e,n);return e.__trim()}static divide(i,_){if(0===_.length)throw new RangeError("Division by zero");if(0>JSBI.__absoluteCompare(i,_))return JSBI.__zero();const t=i.sign!==_.sign,e=_.__unsignedDigit(0);let n;if(1===_.length&&32767>=e){if(1===e)return t===i.sign?i:JSBI.unaryMinus(i);n=JSBI.__absoluteDivSmall(i,e,null)}else n=JSBI.__absoluteDivLarge(i,_,!0,!1);return n.sign=t,n.__trim()}static remainder(i,_){if(0===_.length)throw new RangeError("Division by zero");if(0>JSBI.__absoluteCompare(i,_))return i;const t=_.__unsignedDigit(0);if(1===_.length&&32767>=t){if(1===t)return JSBI.__zero();const _=JSBI.__absoluteModSmall(i,t);return 0===_?JSBI.__zero():JSBI.__oneDigit(_,i.sign)}const e=JSBI.__absoluteDivLarge(i,_,!1,!0);return e.sign=i.sign,e.__trim()}static add(i,_){const t=i.sign;return t===_.sign?JSBI.__absoluteAdd(i,_,t):0<=JSBI.__absoluteCompare(i,_)?JSBI.__absoluteSub(i,_,t):JSBI.__absoluteSub(_,i,!t)}static subtract(i,_){const t=i.sign;return t===_.sign?0<=JSBI.__absoluteCompare(i,_)?JSBI.__absoluteSub(i,_,t):JSBI.__absoluteSub(_,i,!t):JSBI.__absoluteAdd(i,_,t)}static leftShift(i,_){return 0===_.length||0===i.length?i:_.sign?JSBI.__rightShiftByAbsolute(i,_):JSBI.__leftShiftByAbsolute(i,_)}static signedRightShift(i,_){return 0===_.length||0===i.length?i:_.sign?JSBI.__leftShiftByAbsolute(i,_):JSBI.__rightShiftByAbsolute(i,_)}static unsignedRightShift(){throw new TypeError("BigInts have no unsigned right shift; use >> instead")}static lessThan(i,_){return 0>JSBI.__compareToBigInt(i,_)}static lessThanOrEqual(i,_){return 0>=JSBI.__compareToBigInt(i,_)}static greaterThan(i,_){return 0<JSBI.__compareToBigInt(i,_)}static greaterThanOrEqual(i,_){return 0<=JSBI.__compareToBigInt(i,_)}static equal(_,t){if(_.sign!==t.sign)return!1;if(_.length!==t.length)return!1;for(let e=0;e<_.length;e++)if(_.__digit(e)!==t.__digit(e))return!1;return!0}static notEqual(i,_){return!JSBI.equal(i,_)}static bitwiseAnd(i,_){var t=Math.max;if(!i.sign&&!_.sign)return JSBI.__absoluteAnd(i,_).__trim();if(i.sign&&_.sign){const e=t(i.length,_.length)+1;let n=JSBI.__absoluteSubOne(i,e);const g=JSBI.__absoluteSubOne(_);return n=JSBI.__absoluteOr(n,g,n),JSBI.__absoluteAddOne(n,!0,n).__trim()}return i.sign&&([i,_]=[_,i]),JSBI.__absoluteAndNot(i,JSBI.__absoluteSubOne(_)).__trim()}static bitwiseXor(i,_){var t=Math.max;if(!i.sign&&!_.sign)return JSBI.__absoluteXor(i,_).__trim();if(i.sign&&_.sign){const e=t(i.length,_.length),n=JSBI.__absoluteSubOne(i,e),g=JSBI.__absoluteSubOne(_);return JSBI.__absoluteXor(n,g,n).__trim()}const e=t(i.length,_.length)+1;i.sign&&([i,_]=[_,i]);let n=JSBI.__absoluteSubOne(_,e);return n=JSBI.__absoluteXor(n,i,n),JSBI.__absoluteAddOne(n,!0,n).__trim()}static bitwiseOr(i,_){var t=Math.max;const e=t(i.length,_.length);if(!i.sign&&!_.sign)return JSBI.__absoluteOr(i,_).__trim();if(i.sign&&_.sign){let t=JSBI.__absoluteSubOne(i,e);const n=JSBI.__absoluteSubOne(_);return t=JSBI.__absoluteAnd(t,n,t),JSBI.__absoluteAddOne(t,!0,t).__trim()}i.sign&&([i,_]=[_,i]);let n=JSBI.__absoluteSubOne(_,e);return n=JSBI.__absoluteAndNot(n,i,n),JSBI.__absoluteAddOne(n,!0,n).__trim()}static asIntN(_,t){var i=Math.floor;if(0===t.length)return t;if(_=i(_),0>_)throw new RangeError("Invalid value: not (convertible to) a safe integer");if(0===_)return JSBI.__zero();if(_>=JSBI.__kMaxLengthBits)return t;const e=0|(_+29)/30;if(t.length<e)return t;const g=t.__unsignedDigit(e-1),o=1<<(_-1)%30;if(t.length===e&&g<o)return t;if(!((g&o)===o))return JSBI.__truncateToNBits(_,t);if(!t.sign)return JSBI.__truncateAndSubFromPowerOfTwo(_,t,!0);if(0==(g&o-1)){for(let n=e-2;0<=n;n--)if(0!==t.__digit(n))return JSBI.__truncateAndSubFromPowerOfTwo(_,t,!1);return t.length===e&&g===o?t:JSBI.__truncateToNBits(_,t)}return JSBI.__truncateAndSubFromPowerOfTwo(_,t,!1)}static asUintN(i,_){var t=Math.floor;if(0===_.length)return _;if(i=t(i),0>i)throw new RangeError("Invalid value: not (convertible to) a safe integer");if(0===i)return JSBI.__zero();if(_.sign){if(i>JSBI.__kMaxLengthBits)throw new RangeError("BigInt too big");return JSBI.__truncateAndSubFromPowerOfTwo(i,_,!1)}if(i>=JSBI.__kMaxLengthBits)return _;const e=0|(i+29)/30;if(_.length<e)return _;const g=i%30;if(_.length==e){if(0===g)return _;const i=_.__digit(e-1);if(0==i>>>g)return _}return JSBI.__truncateToNBits(i,_)}static ADD(i,_){if(i=JSBI.__toPrimitive(i),_=JSBI.__toPrimitive(_),"string"==typeof i)return"string"!=typeof _&&(_=_.toString()),i+_;if("string"==typeof _)return i.toString()+_;if(i=JSBI.__toNumeric(i),_=JSBI.__toNumeric(_),JSBI.__isBigInt(i)&&JSBI.__isBigInt(_))return JSBI.add(i,_);if("number"==typeof i&&"number"==typeof _)return i+_;throw new TypeError("Cannot mix BigInt and other types, use explicit conversions")}static LT(i,_){return JSBI.__compare(i,_,0)}static LE(i,_){return JSBI.__compare(i,_,1)}static GT(i,_){return JSBI.__compare(i,_,2)}static GE(i,_){return JSBI.__compare(i,_,3)}static EQ(i,_){for(;;){if(JSBI.__isBigInt(i))return JSBI.__isBigInt(_)?JSBI.equal(i,_):JSBI.EQ(_,i);if("number"==typeof i){if(JSBI.__isBigInt(_))return JSBI.__equalToNumber(_,i);if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("string"==typeof i){if(JSBI.__isBigInt(_))return i=JSBI.__fromString(i),null!==i&&JSBI.equal(i,_);if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("boolean"==typeof i){if(JSBI.__isBigInt(_))return JSBI.__equalToNumber(_,+i);if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("symbol"==typeof i){if(JSBI.__isBigInt(_))return!1;if("object"!=typeof _)return i==_;_=JSBI.__toPrimitive(_)}else if("object"==typeof i){if("object"==typeof _&&_.constructor!==JSBI)return i==_;i=JSBI.__toPrimitive(i)}else return i==_}}static NE(i,_){return!JSBI.EQ(i,_)}static DataViewGetBigInt64(i,_,t=!1){return JSBI.asIntN(64,JSBI.DataViewGetBigUint64(i,_,t))}static DataViewGetBigUint64(i,_,t=!1){const[e,n]=t?[4,0]:[0,4],g=i.getUint32(_+e,t),o=i.getUint32(_+n,t),s=new JSBI(3,!1);return s.__setDigit(0,1073741823&o),s.__setDigit(1,(268435455&g)<<2|o>>>30),s.__setDigit(2,g>>>28),s.__trim()}static DataViewSetBigInt64(i,_,t,e=!1){JSBI.DataViewSetBigUint64(i,_,t,e)}static DataViewSetBigUint64(i,_,t,e=!1){t=JSBI.asUintN(64,t);let n=0,g=0;if(0<t.length&&(g=t.__digit(0),1<t.length)){const i=t.__digit(1);g|=i<<30,n=i>>>2,2<t.length&&(n|=t.__digit(2)<<28)}const[o,s]=e?[4,0]:[0,4];i.setUint32(_+o,n,e),i.setUint32(_+s,g,e)}static __zero(){return new JSBI(0,!1)}static __oneDigit(i,_){const t=new JSBI(1,_);return t.__setDigit(0,i),t}__copy(){const _=new JSBI(this.length,this.sign);for(let t=0;t<this.length;t++)_[t]=this[t];return _}__trim(){let i=this.length,_=this[i-1];for(;0===_;)i--,_=this[i-1],this.pop();return 0===i&&(this.sign=!1),this}__initializeDigits(){for(let _=0;_<this.length;_++)this[_]=0}static __decideRounding(i,_,t,e){if(0<_)return-1;let n;if(0>_)n=-_-1;else{if(0===t)return-1;t--,e=i.__digit(t),n=29}let g=1<<n;if(0==(e&g))return-1;if(g-=1,0!=(e&g))return 1;for(;0<t;)if(t--,0!==i.__digit(t))return 1;return 0}static __fromDouble(i){JSBI.__kBitConversionDouble[0]=i;const _=2047&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]>>>20,t=_-1023,e=(0|t/30)+1,n=new JSBI(e,0>i);let g=1048575&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]|1048576,o=JSBI.__kBitConversionInts[JSBI.__kBitConversionIntLow];const s=20,l=t%30;let r,a=0;if(l<20){const i=s-l;a=i+32,r=g>>>i,g=g<<32-i|o>>>i,o<<=32-i}else if(l===20)a=32,r=g,g=o,o=0;else{const i=l-s;a=32-i,r=g<<i|o>>>32-i,g=o<<i,o=0}n.__setDigit(e-1,r);for(let _=e-2;0<=_;_--)0<a?(a-=30,r=g>>>2,g=g<<30|o>>>2,o<<=30):r=0,n.__setDigit(_,r);return n.__trim()}static __isWhitespace(i){return!!(13>=i&&9<=i)||(159>=i?32==i:131071>=i?160==i||5760==i:196607>=i?(i&=131071,10>=i||40==i||41==i||47==i||95==i||4096==i):65279==i)}static __fromString(i,_=0){let t=0;const e=i.length;let n=0;if(n===e)return JSBI.__zero();let g=i.charCodeAt(n);for(;JSBI.__isWhitespace(g);){if(++n===e)return JSBI.__zero();g=i.charCodeAt(n)}if(43===g){if(++n===e)return null;g=i.charCodeAt(n),t=1}else if(45===g){if(++n===e)return null;g=i.charCodeAt(n),t=-1}if(0===_){if(_=10,48===g){if(++n===e)return JSBI.__zero();if(g=i.charCodeAt(n),88===g||120===g){if(_=16,++n===e)return null;g=i.charCodeAt(n)}else if(79===g||111===g){if(_=8,++n===e)return null;g=i.charCodeAt(n)}else if(66===g||98===g){if(_=2,++n===e)return null;g=i.charCodeAt(n)}}}else if(16===_&&48===g){if(++n===e)return JSBI.__zero();if(g=i.charCodeAt(n),88===g||120===g){if(++n===e)return null;g=i.charCodeAt(n)}}if(0!=t&&10!==_)return null;for(;48===g;){if(++n===e)return JSBI.__zero();g=i.charCodeAt(n)}const o=e-n;let s=JSBI.__kMaxBitsPerChar[_],l=JSBI.__kBitsPerCharTableMultiplier-1;if(o>1073741824/s)return null;const r=s*o+l>>>JSBI.__kBitsPerCharTableShift,a=new JSBI(0|(r+29)/30,!1),u=10>_?_:10,h=10<_?_-10:0;if(0==(_&_-1)){s>>=JSBI.__kBitsPerCharTableShift;const _=[],t=[];let o=!1;do{let l=0,r=0;for(;;){let _;if(g-48>>>0<u)_=g-48;else if((32|g)-97>>>0<h)_=(32|g)-87;else{o=!0;break}if(r+=s,l=l<<s|_,++n===e){o=!0;break}if(g=i.charCodeAt(n),30<r+s)break}_.push(l),t.push(r)}while(!o);JSBI.__fillFromParts(a,_,t)}else{a.__initializeDigits();let t=!1,o=0;do{let r=0,b=1;for(;;){let s;if(g-48>>>0<u)s=g-48;else if((32|g)-97>>>0<h)s=(32|g)-87;else{t=!0;break}const l=b*_;if(1073741823<l)break;if(b=l,r=r*_+s,o++,++n===e){t=!0;break}g=i.charCodeAt(n)}l=30*JSBI.__kBitsPerCharTableMultiplier-1;const D=0|(s*o+l>>>JSBI.__kBitsPerCharTableShift)/30;a.__inplaceMultiplyAdd(b,r,D)}while(!t)}if(n!==e){if(!JSBI.__isWhitespace(g))return null;for(n++;n<e;n++)if(g=i.charCodeAt(n),!JSBI.__isWhitespace(g))return null}return a.sign=-1==t,a.__trim()}static __fillFromParts(_,t,e){let n=0,g=0,o=0;for(let s=t.length-1;0<=s;s--){const i=t[s],l=e[s];g|=i<<o,o+=l,30===o?(_.__setDigit(n++,g),o=0,g=0):30<o&&(_.__setDigit(n++,1073741823&g),o-=30,g=i>>>l-o)}if(0!==g){if(n>=_.length)throw new Error("implementation bug");_.__setDigit(n++,g)}for(;n<_.length;n++)_.__setDigit(n,0)}static __toStringBasePowerOfTwo(_,i){const t=_.length;let e=i-1;e=(85&e>>>1)+(85&e),e=(51&e>>>2)+(51&e),e=(15&e>>>4)+(15&e);const n=e,g=i-1,o=_.__digit(t-1),s=JSBI.__clz30(o);let l=0|(30*t-s+n-1)/n;if(_.sign&&l++,268435456<l)throw new Error("string too long");const r=Array(l);let a=l-1,u=0,d=0;for(let e=0;e<t-1;e++){const i=_.__digit(e),t=(u|i<<d)&g;r[a--]=JSBI.__kConversionChars[t];const o=n-d;for(u=i>>>o,d=30-o;d>=n;)r[a--]=JSBI.__kConversionChars[u&g],u>>>=n,d-=n}const h=(u|o<<d)&g;for(r[a--]=JSBI.__kConversionChars[h],u=o>>>n-d;0!==u;)r[a--]=JSBI.__kConversionChars[u&g],u>>>=n;if(_.sign&&(r[a--]="-"),-1!=a)throw new Error("implementation bug");return r.join("")}static __toStringGeneric(_,i,t){const e=_.length;if(0===e)return"";if(1===e){let e=_.__unsignedDigit(0).toString(i);return!1===t&&_.sign&&(e="-"+e),e}const n=30*e-JSBI.__clz30(_.__digit(e-1)),g=JSBI.__kMaxBitsPerChar[i],o=g-1;let s=n*JSBI.__kBitsPerCharTableMultiplier;s+=o-1,s=0|s/o;const l=s+1>>1,r=JSBI.exponentiate(JSBI.__oneDigit(i,!1),JSBI.__oneDigit(l,!1));let a,u;const d=r.__unsignedDigit(0);if(1===r.length&&32767>=d){a=new JSBI(_.length,!1),a.__initializeDigits();let t=0;for(let e=2*_.length-1;0<=e;e--){const i=t<<15|_.__halfDigit(e);a.__setHalfDigit(e,0|i/d),t=0|i%d}u=t.toString(i)}else{const t=JSBI.__absoluteDivLarge(_,r,!0,!0);a=t.quotient;const e=t.remainder.__trim();u=JSBI.__toStringGeneric(e,i,!0)}a.__trim();let h=JSBI.__toStringGeneric(a,i,!0);for(;u.length<l;)u="0"+u;return!1===t&&_.sign&&(h="-"+h),h+u}static __unequalSign(i){return i?-1:1}static __absoluteGreater(i){return i?-1:1}static __absoluteLess(i){return i?1:-1}static __compareToBigInt(i,_){const t=i.sign;if(t!==_.sign)return JSBI.__unequalSign(t);const e=JSBI.__absoluteCompare(i,_);return 0<e?JSBI.__absoluteGreater(t):0>e?JSBI.__absoluteLess(t):0}static __compareToNumber(i,_){if(JSBI.__isOneDigitInt(_)){const t=i.sign,e=0>_;if(t!==e)return JSBI.__unequalSign(t);if(0===i.length){if(e)throw new Error("implementation bug");return 0===_?0:-1}if(1<i.length)return JSBI.__absoluteGreater(t);const n=Math.abs(_),g=i.__unsignedDigit(0);return g>n?JSBI.__absoluteGreater(t):g<n?JSBI.__absoluteLess(t):0}return JSBI.__compareToDouble(i,_)}static __compareToDouble(i,_){if(_!==_)return _;if(_===1/0)return-1;if(_===-Infinity)return 1;const t=i.sign;if(t!==0>_)return JSBI.__unequalSign(t);if(0===_)throw new Error("implementation bug: should be handled elsewhere");if(0===i.length)return-1;JSBI.__kBitConversionDouble[0]=_;const e=2047&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh]>>>20;if(2047==e)throw new Error("implementation bug: handled elsewhere");const n=e-1023;if(0>n)return JSBI.__absoluteGreater(t);const g=i.length;let o=i.__digit(g-1);const s=JSBI.__clz30(o),l=30*g-s,r=n+1;if(l<r)return JSBI.__absoluteLess(t);if(l>r)return JSBI.__absoluteGreater(t);let a=1048576|1048575&JSBI.__kBitConversionInts[JSBI.__kBitConversionIntHigh],u=JSBI.__kBitConversionInts[JSBI.__kBitConversionIntLow];const d=20,h=29-s;if(h!==(0|(l-1)%30))throw new Error("implementation bug");let m,b=0;if(20>h){const i=d-h;b=i+32,m=a>>>i,a=a<<32-i|u>>>i,u<<=32-i}else if(20===h)b=32,m=a,a=u,u=0;else{const i=h-d;b=32-i,m=a<<i|u>>>32-i,a=u<<i,u=0}if(o>>>=0,m>>>=0,o>m)return JSBI.__absoluteGreater(t);if(o<m)return JSBI.__absoluteLess(t);for(let e=g-2;0<=e;e--){0<b?(b-=30,m=a>>>2,a=a<<30|u>>>2,u<<=30):m=0;const _=i.__unsignedDigit(e);if(_>m)return JSBI.__absoluteGreater(t);if(_<m)return JSBI.__absoluteLess(t)}if(0!==a||0!==u){if(0===b)throw new Error("implementation bug");return JSBI.__absoluteLess(t)}return 0}static __equalToNumber(i,_){var t=Math.abs;return JSBI.__isOneDigitInt(_)?0===_?0===i.length:1===i.length&&i.sign===0>_&&i.__unsignedDigit(0)===t(_):0===JSBI.__compareToDouble(i,_)}static __comparisonResultToBool(i,_){return 0===_?0>i:1===_?0>=i:2===_?0<i:3===_?0<=i:void 0}static __compare(i,_,t){if(i=JSBI.__toPrimitive(i),_=JSBI.__toPrimitive(_),"string"==typeof i&&"string"==typeof _)switch(t){case 0:return i<_;case 1:return i<=_;case 2:return i>_;case 3:return i>=_}if(JSBI.__isBigInt(i)&&"string"==typeof _)return _=JSBI.__fromString(_),null!==_&&JSBI.__comparisonResultToBool(JSBI.__compareToBigInt(i,_),t);if("string"==typeof i&&JSBI.__isBigInt(_))return i=JSBI.__fromString(i),null!==i&&JSBI.__comparisonResultToBool(JSBI.__compareToBigInt(i,_),t);if(i=JSBI.__toNumeric(i),_=JSBI.__toNumeric(_),JSBI.__isBigInt(i)){if(JSBI.__isBigInt(_))return JSBI.__comparisonResultToBool(JSBI.__compareToBigInt(i,_),t);if("number"!=typeof _)throw new Error("implementation bug");return JSBI.__comparisonResultToBool(JSBI.__compareToNumber(i,_),t)}if("number"!=typeof i)throw new Error("implementation bug");if(JSBI.__isBigInt(_))return JSBI.__comparisonResultToBool(JSBI.__compareToNumber(_,i),2^t);if("number"!=typeof _)throw new Error("implementation bug");return 0===t?i<_:1===t?i<=_:2===t?i>_:3===t?i>=_:void 0}__clzmsd(){return JSBI.__clz30(this.__digit(this.length-1))}static __absoluteAdd(_,t,e){if(_.length<t.length)return JSBI.__absoluteAdd(t,_,e);if(0===_.length)return _;if(0===t.length)return _.sign===e?_:JSBI.unaryMinus(_);let n=_.length;(0===_.__clzmsd()||t.length===_.length&&0===t.__clzmsd())&&n++;const g=new JSBI(n,e);let o=0,s=0;for(;s<t.length;s++){const i=_.__digit(s)+t.__digit(s)+o;o=i>>>30,g.__setDigit(s,1073741823&i)}for(;s<_.length;s++){const i=_.__digit(s)+o;o=i>>>30,g.__setDigit(s,1073741823&i)}return s<g.length&&g.__setDigit(s,o),g.__trim()}static __absoluteSub(_,t,e){if(0===_.length)return _;if(0===t.length)return _.sign===e?_:JSBI.unaryMinus(_);const n=new JSBI(_.length,e);let g=0,o=0;for(;o<t.length;o++){const i=_.__digit(o)-t.__digit(o)-g;g=1&i>>>30,n.__setDigit(o,1073741823&i)}for(;o<_.length;o++){const i=_.__digit(o)-g;g=1&i>>>30,n.__setDigit(o,1073741823&i)}return n.__trim()}static __absoluteAddOne(_,i,t=null){const e=_.length;null===t?t=new JSBI(e,i):t.sign=i;let n=1;for(let g=0;g<e;g++){const i=_.__digit(g)+n;n=i>>>30,t.__setDigit(g,1073741823&i)}return 0!=n&&t.__setDigitGrow(e,1),t}static __absoluteSubOne(_,t){const e=_.length;t=t||e;const n=new JSBI(t,!1);let g=1;for(let o=0;o<e;o++){const i=_.__digit(o)-g;g=1&i>>>30,n.__setDigit(o,1073741823&i)}if(0!=g)throw new Error("implementation bug");for(let g=e;g<t;g++)n.__setDigit(g,0);return n}static __absoluteAnd(_,t,e=null){let n=_.length,g=t.length,o=g;if(n<g){o=n;const i=_,e=n;_=t,n=g,t=i,g=e}let s=o;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)&t.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteAndNot(_,t,e=null){const n=_.length,g=t.length;let o=g;n<g&&(o=n);let s=n;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)&~t.__digit(l));for(;l<n;l++)e.__setDigit(l,_.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteOr(_,t,e=null){let n=_.length,g=t.length,o=g;if(n<g){o=n;const i=_,e=n;_=t,n=g,t=i,g=e}let s=n;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)|t.__digit(l));for(;l<n;l++)e.__setDigit(l,_.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteXor(_,t,e=null){let n=_.length,g=t.length,o=g;if(n<g){o=n;const i=_,e=n;_=t,n=g,t=i,g=e}let s=n;null===e?e=new JSBI(s,!1):s=e.length;let l=0;for(;l<o;l++)e.__setDigit(l,_.__digit(l)^t.__digit(l));for(;l<n;l++)e.__setDigit(l,_.__digit(l));for(;l<s;l++)e.__setDigit(l,0);return e}static __absoluteCompare(_,t){const e=_.length-t.length;if(0!=e)return e;let n=_.length-1;for(;0<=n&&_.__digit(n)===t.__digit(n);)n--;return 0>n?0:_.__unsignedDigit(n)>t.__unsignedDigit(n)?1:-1}static __multiplyAccumulate(_,t,e,n){if(0===t)return;const g=32767&t,o=t>>>15;let s=0,l=0;for(let r,a=0;a<_.length;a++,n++){r=e.__digit(n);const i=_.__digit(a),t=32767&i,u=i>>>15,d=JSBI.__imul(t,g),h=JSBI.__imul(t,o),m=JSBI.__imul(u,g),b=JSBI.__imul(u,o);r+=l+d+s,s=r>>>30,r&=1073741823,r+=((32767&h)<<15)+((32767&m)<<15),s+=r>>>30,l=b+(h>>>15)+(m>>>15),e.__setDigit(n,1073741823&r)}for(;0!=s||0!==l;n++){let i=e.__digit(n);i+=s+l,l=0,s=i>>>30,e.__setDigit(n,1073741823&i)}}static __internalMultiplyAdd(_,t,e,g,o){let s=e,l=0;for(let n=0;n<g;n++){const i=_.__digit(n),e=JSBI.__imul(32767&i,t),g=JSBI.__imul(i>>>15,t),a=e+((32767&g)<<15)+l+s;s=a>>>30,l=g>>>15,o.__setDigit(n,1073741823&a)}if(o.length>g)for(o.__setDigit(g++,s+l);g<o.length;)o.__setDigit(g++,0);else if(0!==s+l)throw new Error("implementation bug")}__inplaceMultiplyAdd(i,_,t){t>this.length&&(t=this.length);const e=32767&i,n=i>>>15;let g=0,o=_;for(let s=0;s<t;s++){const i=this.__digit(s),_=32767&i,t=i>>>15,l=JSBI.__imul(_,e),r=JSBI.__imul(_,n),a=JSBI.__imul(t,e),u=JSBI.__imul(t,n);let d=o+l+g;g=d>>>30,d&=1073741823,d+=((32767&r)<<15)+((32767&a)<<15),g+=d>>>30,o=u+(r>>>15)+(a>>>15),this.__setDigit(s,1073741823&d)}if(0!=g||0!==o)throw new Error("implementation bug")}static __absoluteDivSmall(_,t,e=null){null===e&&(e=new JSBI(_.length,!1));let n=0;for(let g,o=2*_.length-1;0<=o;o-=2){g=(n<<15|_.__halfDigit(o))>>>0;const i=0|g/t;n=0|g%t,g=(n<<15|_.__halfDigit(o-1))>>>0;const s=0|g/t;n=0|g%t,e.__setDigit(o>>>1,i<<15|s)}return e}static __absoluteModSmall(_,t){let e=0;for(let n=2*_.length-1;0<=n;n--){const i=(e<<15|_.__halfDigit(n))>>>0;e=0|i%t}return e}static __absoluteDivLarge(i,_,t,e){const g=_.__halfDigitLength(),n=_.length,o=i.__halfDigitLength()-g;let s=null;t&&(s=new JSBI(o+2>>>1,!1),s.__initializeDigits());const l=new JSBI(g+2>>>1,!1);l.__initializeDigits();const r=JSBI.__clz15(_.__halfDigit(g-1));0<r&&(_=JSBI.__specialLeftShift(_,r,0));const a=JSBI.__specialLeftShift(i,r,1),u=_.__halfDigit(g-1);let d=0;for(let r,h=o;0<=h;h--){r=32767;const i=a.__halfDigit(h+g);if(i!==u){const t=(i<<15|a.__halfDigit(h+g-1))>>>0;r=0|t/u;let e=0|t%u;const n=_.__halfDigit(g-2),o=a.__halfDigit(h+g-2);for(;JSBI.__imul(r,n)>>>0>(e<<16|o)>>>0&&(r--,e+=u,!(32767<e)););}JSBI.__internalMultiplyAdd(_,r,0,n,l);let e=a.__inplaceSub(l,h,g+1);0!==e&&(e=a.__inplaceAdd(_,h,g),a.__setHalfDigit(h+g,32767&a.__halfDigit(h+g)+e),r--),t&&(1&h?d=r<<15:s.__setDigit(h>>>1,d|r))}if(e)return a.__inplaceRightShift(r),t?{quotient:s,remainder:a}:a;if(t)return s;throw new Error("unreachable")}static __clz15(i){return JSBI.__clz30(i)-15}__inplaceAdd(_,t,e){let n=0;for(let g=0;g<e;g++){const i=this.__halfDigit(t+g)+_.__halfDigit(g)+n;n=i>>>15,this.__setHalfDigit(t+g,32767&i)}return n}__inplaceSub(_,t,e){let n=0;if(1&t){t>>=1;let g=this.__digit(t),o=32767&g,s=0;for(;s<e-1>>>1;s++){const i=_.__digit(s),e=(g>>>15)-(32767&i)-n;n=1&e>>>15,this.__setDigit(t+s,(32767&e)<<15|32767&o),g=this.__digit(t+s+1),o=(32767&g)-(i>>>15)-n,n=1&o>>>15}const i=_.__digit(s),l=(g>>>15)-(32767&i)-n;n=1&l>>>15,this.__setDigit(t+s,(32767&l)<<15|32767&o);if(t+s+1>=this.length)throw new RangeError("out of bounds");0==(1&e)&&(g=this.__digit(t+s+1),o=(32767&g)-(i>>>15)-n,n=1&o>>>15,this.__setDigit(t+_.length,1073709056&g|32767&o))}else{t>>=1;let g=0;for(;g<_.length-1;g++){const i=this.__digit(t+g),e=_.__digit(g),o=(32767&i)-(32767&e)-n;n=1&o>>>15;const s=(i>>>15)-(e>>>15)-n;n=1&s>>>15,this.__setDigit(t+g,(32767&s)<<15|32767&o)}const i=this.__digit(t+g),o=_.__digit(g),s=(32767&i)-(32767&o)-n;n=1&s>>>15;let l=0;0==(1&e)&&(l=(i>>>15)-(o>>>15)-n,n=1&l>>>15),this.__setDigit(t+g,(32767&l)<<15|32767&s)}return n}__inplaceRightShift(_){if(0===_)return;let t=this.__digit(0)>>>_;const e=this.length-1;for(let n=0;n<e;n++){const i=this.__digit(n+1);this.__setDigit(n,1073741823&i<<30-_|t),t=i>>>_}this.__setDigit(e,t)}static __specialLeftShift(_,t,e){const g=_.length,n=new JSBI(g+e,!1);if(0===t){for(let t=0;t<g;t++)n.__setDigit(t,_.__digit(t));return 0<e&&n.__setDigit(g,0),n}let o=0;for(let s=0;s<g;s++){const i=_.__digit(s);n.__setDigit(s,1073741823&i<<t|o),o=i>>>30-t}return 0<e&&n.__setDigit(g,o),n}static __leftShiftByAbsolute(_,i){const t=JSBI.__toShiftAmount(i);if(0>t)throw new RangeError("BigInt too big");const e=0|t/30,n=t%30,g=_.length,o=0!==n&&0!=_.__digit(g-1)>>>30-n,s=g+e+(o?1:0),l=new JSBI(s,_.sign);if(0===n){let t=0;for(;t<e;t++)l.__setDigit(t,0);for(;t<s;t++)l.__setDigit(t,_.__digit(t-e))}else{let t=0;for(let _=0;_<e;_++)l.__setDigit(_,0);for(let o=0;o<g;o++){const i=_.__digit(o);l.__setDigit(o+e,1073741823&i<<n|t),t=i>>>30-n}if(o)l.__setDigit(g+e,t);else if(0!==t)throw new Error("implementation bug")}return l.__trim()}static __rightShiftByAbsolute(_,i){const t=_.length,e=_.sign,n=JSBI.__toShiftAmount(i);if(0>n)return JSBI.__rightShiftByMaximum(e);const g=0|n/30,o=n%30;let s=t-g;if(0>=s)return JSBI.__rightShiftByMaximum(e);let l=!1;if(e){if(0!=(_.__digit(g)&(1<<o)-1))l=!0;else for(let t=0;t<g;t++)if(0!==_.__digit(t)){l=!0;break}}if(l&&0===o){const i=_.__digit(t-1);0==~i&&s++}let r=new JSBI(s,e);if(0===o){r.__setDigit(s-1,0);for(let e=g;e<t;e++)r.__setDigit(e-g,_.__digit(e))}else{let e=_.__digit(g)>>>o;const n=t-g-1;for(let t=0;t<n;t++){const i=_.__digit(t+g+1);r.__setDigit(t,1073741823&i<<30-o|e),e=i>>>o}r.__setDigit(n,e)}return l&&(r=JSBI.__absoluteAddOne(r,!0,r)),r.__trim()}static __rightShiftByMaximum(i){return i?JSBI.__oneDigit(1,!0):JSBI.__zero()}static __toShiftAmount(i){if(1<i.length)return-1;const _=i.__unsignedDigit(0);return _>JSBI.__kMaxLengthBits?-1:_}static __toPrimitive(i,_="default"){if("object"!=typeof i)return i;if(i.constructor===JSBI)return i;if("undefined"!=typeof Symbol&&"symbol"==typeof Symbol.toPrimitive&&i[Symbol.toPrimitive]){const t=i[Symbol.toPrimitive](_);if("object"!=typeof t)return t;throw new TypeError("Cannot convert object to primitive value")}const t=i.valueOf;if(t){const _=t.call(i);if("object"!=typeof _)return _}const e=i.toString;if(e){const _=e.call(i);if("object"!=typeof _)return _}throw new TypeError("Cannot convert object to primitive value")}static __toNumeric(i){return JSBI.__isBigInt(i)?i:+i}static __isBigInt(i){return"object"==typeof i&&null!==i&&i.constructor===JSBI}static __truncateToNBits(i,_){const t=0|(i+29)/30,e=new JSBI(t,_.sign),n=t-1;for(let t=0;t<n;t++)e.__setDigit(t,_.__digit(t));let g=_.__digit(n);if(0!=i%30){const _=32-i%30;g=g<<_>>>_}return e.__setDigit(n,g),e.__trim()}static __truncateAndSubFromPowerOfTwo(_,t,e){var n=Math.min;const g=0|(_+29)/30,o=new JSBI(g,e);let s=0;const l=g-1;let a=0;for(const i=n(l,t.length);s<i;s++){const i=0-t.__digit(s)-a;a=1&i>>>30,o.__setDigit(s,1073741823&i)}for(;s<l;s++)o.__setDigit(s,0|1073741823&-a);let u=l<t.length?t.__digit(l):0;const d=_%30;let h;if(0==d)h=0-u-a,h&=1073741823;else{const i=32-d;u=u<<i>>>i;const _=1<<32-i;h=_-u-a,h&=_-1}return o.__setDigit(l,h),o.__trim()}__digit(_){return this[_]}__unsignedDigit(_){return this[_]>>>0}__setDigit(_,i){this[_]=0|i}__setDigitGrow(_,i){this[_]=0|i}__halfDigitLength(){const i=this.length;return 32767>=this.__unsignedDigit(i-1)?2*i-1:2*i}__halfDigit(_){return 32767&this[_>>>1]>>>15*(1&_)}__setHalfDigit(_,i){const t=_>>>1,e=this.__digit(t),n=1&_?32767&e|i<<15:1073709056&e|32767&i;this.__setDigit(t,n)}static __digitPow(i,_){let t=1;for(;0<_;)1&_&&(t*=i),_>>>=1,i*=i;return t}static __detectBigEndian(){return JSBI.__kBitConversionDouble[0]=-0,0!==JSBI.__kBitConversionInts[0]}static __isOneDigitInt(i){return(1073741823&i)===i}}JSBI.__kMaxLength=33554432,JSBI.__kMaxLengthBits=JSBI.__kMaxLength<<5,JSBI.__kMaxBitsPerChar=[0,0,32,51,64,75,83,90,96,102,107,111,115,119,122,126,128,131,134,136,139,141,143,145,147,149,151,153,154,156,158,159,160,162,163,165,166],JSBI.__kBitsPerCharTableShift=5,JSBI.__kBitsPerCharTableMultiplier=1<<JSBI.__kBitsPerCharTableShift,JSBI.__kConversionChars=["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"],JSBI.__kBitConversionBuffer=new ArrayBuffer(8),JSBI.__kBitConversionDouble=new Float64Array(JSBI.__kBitConversionBuffer),JSBI.__kBitConversionInts=new Int32Array(JSBI.__kBitConversionBuffer),JSBI.__kBitConversionIntHigh=JSBI.__detectBigEndian()?0:1,JSBI.__kBitConversionIntLow=JSBI.__detectBigEndian()?1:0,JSBI.__clz30=Math.clz32?function(i){return Math.clz32(i)-2}:function(i){return 0===i?30:0|29-(0|Math.log(i>>>0)/Math.LN2)},JSBI.__imul=Math.imul||function(i,_){return 0|i*_},module.exports=JSBI;
-//# sourceMappingURL=jsbi-cjs.js.map
-
-
-/***/ }),
-
-/***/ 6454:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-/* eslint-disable max-depth, max-params, no-warning-comments, complexity, import-x/order */
-
-const {randomUUID} = __nccwpck_require__(6005);
-
-// Load Temporal polyfill if not natively available
-// TODO: Drop the polyfill branch once our minimum Node version ships Temporal
-const Temporal = globalThis.Temporal || (__nccwpck_require__(1763).Temporal);
-// Ensure Temporal exists before loading rrule-temporal
-globalThis.Temporal ??= Temporal;
-
-const {RRuleTemporal} = __nccwpck_require__(1835);
-const {toText: toTextFunction} = __nccwpck_require__(2336);
-const tzUtil = __nccwpck_require__(5108);
-
-/**
- * Construct a date-only key (YYYY-MM-DD) from a Date object.
- * For date-only events, uses local date components to avoid timezone shifts.
- * For date-time events, extracts the date portion from the ISO timestamp.
- * @param {Date} dateValue - Date object with optional dateOnly property
- * @returns {string} Date key in YYYY-MM-DD format
- */
-const getDateKey = function (dateValue) {
-  if (dateValue.dateOnly) {
-    return `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
-  }
-
-  return dateValue.toISOString().slice(0, 10);
-};
-
-/**
- * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
- * This maintains backward compatibility while using rrule-temporal internally
- */
-class RRuleCompatWrapper {
-  constructor(rruleTemporal) {
-    this._rrule = rruleTemporal;
-  }
-
-  static #temporalToDate(value) {
-    if (value === undefined || value === null) {
-      return value;
-    }
-
-    if (Array.isArray(value)) {
-      return value.map(item => RRuleCompatWrapper.#temporalToDate(item));
-    }
-
-    // Convert known Temporal instances to Date
-    if (typeof value === 'object' && !(value instanceof Date) && typeof value.epochMilliseconds === 'number') {
-      return new Date(value.epochMilliseconds);
-    }
-
-    return value;
-  }
-
-  #serializeOptions() {
-    const raw = this._rrule.options();
-    const converted = {};
-
-    for (const [key, value] of Object.entries(raw)) {
-      converted[key] = RRuleCompatWrapper.#temporalToDate(value);
-    }
-
-    // Map rrule-temporal `byDay` to legacy `byweekday`
-    if (converted.byweekday === undefined && raw.byDay !== undefined) {
-      converted.byweekday = RRuleCompatWrapper.#temporalToDate(raw.byDay);
-    }
-
-    return converted;
-  }
-
-  between(after, before, inclusive = false) {
-    const results = this._rrule.between(after, before, inclusive);
-    // Convert Temporal.ZonedDateTime → Date
-    return results.map(zdt => new Date(zdt.epochMilliseconds));
-  }
-
-  all(iterator) {
-    const results = this._rrule.all(iterator);
-    return results.map(zdt => new Date(zdt.epochMilliseconds));
-  }
-
-  before(date, inclusive = false) {
-    const result = this._rrule.before(date, inclusive);
-    return result ? new Date(result.epochMilliseconds) : null;
-  }
-
-  after(date, inclusive = false) {
-    const result = this._rrule.after(date, inclusive);
-    return result ? new Date(result.epochMilliseconds) : null;
-  }
-
-  toText(locale) {
-    return toTextFunction(this._rrule, locale);
-  }
-
-  // Delegate other methods
-  toString() {
-    return this._rrule.toString();
-  }
-
-  // Expose options as a property for compatibility with the old rrule.js API
-  // (the wrapper hides the underlying method-based interface)
-  get options() {
-    return this.#serializeOptions();
-  }
-
-  // OrigOptions: the original options as passed to the constructor (before processing).
-  // In rrule.js, this was used for toString() and clone() operations.
-  // For rrule-temporal, options() already returns the unprocessed original options,
-  // so origOptions and options are equivalent.
-  get origOptions() {
-    return this.#serializeOptions();
-  }
-}
-
-/** **************
- *  A tolerant, minimal icalendar parser
- *  (http://tools.ietf.org/html/rfc5545)
- *
- *  <peterbraden@peterbraden.co.uk>
- * ************* */
-
-// Unescape Text re RFC 4.3.11
-const text = function (t = '') {
-  return t
-    .replaceAll(String.raw`\,`, ',') // Unescape escaped commas
-    .replaceAll(String.raw`\;`, ';') // Unescape escaped semicolons
-    .replaceAll(/\\[nN]/g, '\n') // Replace escaped newlines with actual newlines
-    .replaceAll('\\\\', '\\') // Unescape backslashes
-    .replace(/^"(.*)"$/, '$1'); // Remove surrounding double quotes, if present
-};
-
-const parseValue = function (value) {
-  if (value === 'TRUE') {
-    return true;
-  }
-
-  if (value === 'FALSE') {
-    return false;
-  }
-
-  const number = Number(value);
-  if (!Number.isNaN(number)) {
-    return number;
-  }
-
-  // Remove quotes if found
-  value = value.replace(/^"(.*)"$/, '$1');
-
-  return value;
-};
-
-const parseParameters = function (p) {
-  const out = {};
-  for (const element of p) {
-    if (element.includes('=')) {
-      const segs = element.split('=');
-
-      out[segs[0]] = parseValue(segs.slice(1).join('='));
-    }
-  }
-
-  // Sp is not defined in this scope, typo?
-  // original code from peterbraden
-  // return out || sp;
-  return out;
-};
-
-const storeValueParameter = function (name) {
-  return function (value, curr) {
-    const current = curr[name];
-
-    if (Array.isArray(current)) {
-      current.push(value);
-      return curr;
-    }
-
-    curr[name] = current === undefined ? value : [current, value];
-
-    return curr;
-  };
-};
-
-const storeParameter = function (name) {
-  return function (value, parameters, curr) {
-    const data = parameters && parameters.length > 0 && !(parameters.length === 1 && (parameters[0] === 'CHARSET=utf-8' || parameters[0] === 'VALUE=TEXT')) ? {params: parseParameters(parameters), val: text(value)} : text(value);
-
-    return storeValueParameter(name)(data, curr);
-  };
-};
-
-const addTZ = function (dt, parameters) {
-  if (!dt) {
-    return dt;
-  }
-
-  const p = parseParameters(parameters);
-  if (parameters && p && p.TZID !== undefined) {
-    let tzid = p.TZID.toString();
-    // Remove surrounding quotes if found at the beginning and at the end of the string
-    // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
-    tzid = tzid.replace(/^"(.*)"$/, '$1');
-    return tzUtil.attachTz(dt, tzid);
-  }
-
-  if (dt.tz) {
-    return tzUtil.attachTz(dt, dt.tz);
-  }
-
-  return dt;
-};
-
-function isDateOnly(value, parameters) {
-  const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true);
-  return dateOnly;
-}
-
-const typeParameter = function (name) {
-  // Typename is not used in this function?
-  return function (value, parameters, curr) {
-    const returnValue = isDateOnly(value, parameters) ? 'date' : 'date-time';
-    return storeValueParameter(name)(returnValue, curr);
-  };
-};
-
-const dateParameter = function (name) {
-  return function (value, parameters, curr, stack) {
-    // The regex from main gets confused by extra :
-    const pi = parameters.indexOf('TZID=tzone');
-    if (pi !== -1) {
-      // Correct the parameters with the part on the value
-      parameters[pi] = parameters[pi] + ':' + value.split(':')[0];
-      // Get the date from the field, other code uses the value parameter
-      value = value.split(':')[1];
-    }
-
-    let newDate = text(value);
-
-    // Process 'VALUE=DATE' and EXDATE
-    if (isDateOnly(value, parameters)) {
-      // Just Date
-
-      const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(value);
-      if (comps !== null) {
-        // No TZ info - assume same timezone as this computer
-        newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
-
-        newDate.dateOnly = true;
-
-        // Store as string - worst case scenario
-        return storeValueParameter(name)(newDate, curr);
-      }
-    }
-
-    // Typical RFC date-time format
-    const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(value);
-    if (comps !== null) {
-      const year = Number.parseInt(comps[1], 10);
-      const monthIndex = Number.parseInt(comps[2], 10) - 1;
-      const day = Number.parseInt(comps[3], 10);
-      const hour = Number.parseInt(comps[4], 10);
-      const minute = Number.parseInt(comps[5], 10);
-      const second = Number.parseInt(comps[6], 10);
-
-      if (comps[7] === 'Z') {
-        // GMT
-        newDate = new Date(Date.UTC(year, monthIndex, day, hour, minute, second));
-        tzUtil.attachTz(newDate, 'Etc/UTC');
-      } else {
-        const fallbackWithStackTimezone = () => {
-          // Get the time zone from the stack
-          const stackItemWithTimeZone
-            = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
-          const vTimezone
-            = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
-
-          // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
-          const normalizedTzId = vTimezone
-            ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
-            : null;
-
-          if (!normalizedTzId) {
-            return new Date(year, monthIndex, day, hour, minute, second);
-          }
-
-          const tzInfo = tzUtil.resolveTZID(normalizedTzId);
-          const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
-          if (offsetString) {
-            return tzUtil.parseWithOffset(value, offsetString);
-          }
-
-          if (tzInfo.iana) {
-            return tzUtil.parseDateTimeInZone(value, tzInfo.iana);
-          }
-
-          return new Date(year, monthIndex, day, hour, minute, second);
-        };
-
-        if (parameters) {
-          const parameterMap = parseParameters(parameters);
-          let tz = parameterMap.TZID;
-
-          const findTZIDIndex = () => {
-            if (!Array.isArray(parameters)) {
-              return -1;
-            }
-
-            return parameters.findIndex(parameter => typeof parameter === 'string' && parameter.toUpperCase().startsWith('TZID='));
-          };
-
-          let tzParameterIndex = findTZIDIndex();
-          const setTZIDParameter = newTZID => {
-            if (!Array.isArray(parameters)) {
-              return;
-            }
-
-            const normalized = 'TZID=' + newTZID;
-            if (tzParameterIndex >= 0) {
-              parameters[tzParameterIndex] = normalized;
-            } else {
-              parameters.push(normalized);
-              tzParameterIndex = parameters.length - 1;
-            }
-          };
-
-          if (tz) {
-            tz = tz.toString().replace(/^"(.*)"$/, '$1');
-
-            if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-              tz = tzUtil.guessLocalZone();
-            }
-
-            const tzInfo = tzUtil.resolveTZID(tz);
-            const resolvedTZID = tzInfo.iana || tzInfo.original || tz;
-            setTZIDParameter(resolvedTZID);
-
-            // Prefer an explicit numeric offset because it keeps DTSTART wall-time semantics accurate across DST transitions.
-            const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
-            if (offsetString) {
-              newDate = tzUtil.parseWithOffset(value, offsetString);
-            } else if (tzInfo.iana) {
-              newDate = tzUtil.parseDateTimeInZone(value, tzInfo.iana);
-            } else {
-              newDate = new Date(year, monthIndex, day, hour, minute, second);
-            }
-
-            // Make sure to correct the parameters if the TZID= is changed
-            newDate = addTZ(newDate, parameters);
-          } else {
-            newDate = fallbackWithStackTimezone();
-          }
-        } else {
-          newDate = fallbackWithStackTimezone();
-        }
-      }
-    }
-
-    // Store as string - worst case scenario
-    return storeValueParameter(name)(newDate, curr);
-  };
-};
-
-const geoParameter = function (name) {
-  return function (value, parameters, curr) {
-    storeParameter(value, parameters, curr);
-    const parts = value.split(';');
-    curr[name] = {lat: Number(parts[0]), lon: Number(parts[1])};
-    return curr;
-  };
-};
-
-const categoriesParameter = function (name) {
-  return function (value, parameters, curr) {
-    storeParameter(value, parameters, curr);
-    if (curr[name] === undefined) {
-      curr[name] = value ? value.split(',').map(s => s.trim()) : [];
-    } else if (value) {
-      curr[name] = curr[name].concat(value.split(',').map(s => s.trim()));
-    }
-
-    return curr;
-  };
-};
-
-// EXDATE is an entry that represents exceptions to a recurrence rule (ex: "repeat every day except on 7/4").
-// The EXDATE entry itself can also contain a comma-separated list, so we parse each date separately.
-// Multiple EXDATE entries can exist in a calendar record.
-//
-// Storage strategy (RFC 5545 compliant):
-// We create an object with the exception dates as keys and Date objects as values.
-// - For VALUE=DATE (date-only): key is "YYYY-MM-DD"
-// - For DATE-TIME: BOTH "YYYY-MM-DD" AND full ISO string keys are created
-//
-// This dual-key approach provides:
-// 1. Backward compatibility: date-only lookups continue to work
-// 2. Precision matching: events recurring multiple times per day can exclude specific instances
-// 3. RFC 5545 compliance: supports both DATE and DATE-TIME exclusions
-//
-// Usage examples:
-//   if (event.exdate?.['2024-01-15']) { ... }              // Check if any instance on this day is excluded
-//   if (event.exdate?.['2024-01-15T14:00:00.000Z']) { ... } // Check specific time instance
-//
-// NOTE: We intentionally use date-based keys as the primary lookup because:
-//   1. Floating times (without timezone) would create inconsistent ISO strings
-//   2. DST transitions can affect exact time matching
-//   3. Real-world calendar data often has mismatched times between RRULE and EXDATE
-const exdateParameter = function (name) {
-  return function (value, parameters, curr) {
-    curr[name] ||= {};
-    const dates = value ? value.split(',').map(s => s.trim()) : [];
-
-    for (const entry of dates) {
-      // Temporary container for dateParameter() to write to
-      const temporaryContainer = {};
-      dateParameter(name)(entry, parameters, temporaryContainer);
-
-      const dateValue = temporaryContainer[name];
-      if (!dateValue) {
-        continue;
-      }
-
-      if (typeof dateValue.toISOString !== 'function') {
-        console.warn(`[node-ical] Invalid exdate value (no toISOString): ${dateValue}`);
-        continue;
-      }
-
-      const isoString = dateValue.toISOString();
-
-      // For date-only events, use local date components to avoid UTC timezone shift
-      // (e.g., 2024-07-15 midnight in UTC+2 would be 2024-07-14T22:00Z, giving wrong dateKey)
-      const dateKey = getDateKey(dateValue);
-
-      // Always store with date-only key for backward compatibility and simple lookups
-      curr[name][dateKey] = dateValue;
-
-      // For DATE-TIME entries, also store with full ISO string for precise matching
-      // This enables excluding specific instances when events recur multiple times per day
-      // Note: dateOnly is already set by dateParameter() which checks the raw value and parameters
-      if (!dateValue.dateOnly) {
-        curr[name][isoString] = dateValue;
-      }
-    }
-
-    return curr;
-  };
-};
-
-// RECURRENCE-ID is the ID of a specific recurrence within a recurrence rule.
-// TODO:  It's also possible for it to have a range, like "THISANDPRIOR", "THISANDFUTURE".  This isn't currently handled.
-const recurrenceParameter = function (name) {
-  return dateParameter(name);
-};
-
-const addFBType = function (fb, parameters) {
-  const p = parseParameters(parameters);
-
-  if (parameters && p) {
-    fb.type = p.FBTYPE || 'BUSY';
-  }
-
-  return fb;
-};
-
-const freebusyParameter = function (name) {
-  return function (value, parameters, curr) {
-    const fb = addFBType({}, parameters);
-    curr[name] ||= [];
-    curr[name].push(fb);
-
-    storeParameter(value, parameters, fb);
-
-    const parts = value.split('/');
-
-    for (const [index, name] of ['start', 'end'].entries()) {
-      dateParameter(name)(parts[index], parameters, fb);
-    }
-
-    return curr;
-  };
-};
-
-module.exports = {
-  objectHandlers: {
-    BEGIN(component, parameters, curr, stack) {
-      stack.push(curr);
-
-      return {type: component, params: parameters};
-    },
-    END(value, parameters, curr, stack) {
-      // Original end function
-      const originalEnd = function (component, parameters_, curr, stack) {
-        // Prevents the need to search the root of the tree for the VCALENDAR object
-        if (component === 'VCALENDAR') {
-          // Scan all high level object in curr and drop all strings
-          let key;
-          let object;
-          const highLevel = {};
-
-          for (key in curr) {
-            if (!Object.hasOwn(curr, key)) {
-              continue;
-            }
-
-            object = curr[key];
-            if (typeof object === 'string') {
-              highLevel[key] = object;
-              delete curr[key];
-            }
-          }
-
-          if (highLevel.type) {
-            curr[highLevel.type.toLowerCase()] = highLevel;
-          }
-
-          return curr;
-        }
-
-        const par = stack.pop();
-
-        if (!curr.end) { // RFC5545, 3.6.1
-          // Helper: clone a Date and preserve custom metadata (tz, dateOnly)
-          const cloneDateWithMeta = (source, newTime = source) => {
-            const cloned = new Date(newTime);
-            if (source?.tz) {
-              cloned.tz = source.tz;
-            }
-
-            if (source?.dateOnly) {
-              cloned.dateOnly = source.dateOnly;
-            }
-
-            return cloned;
-          };
-
-          // Helper: extract string value from DURATION (handles {params, val} shape)
-          const getDurationString = duration => {
-            if (typeof duration === 'object' && duration?.val) {
-              return String(duration.val);
-            }
-
-            if (duration) {
-              return String(duration);
-            }
-
-            return '';
-          };
-
-          // Calculate end date based on DURATION or default rules
-          if (curr.duration === undefined) {
-            // No DURATION: default end is same time (date-time) or +1 day (date-only)
-            curr.end = curr.datetype === 'date-time'
-              ? cloneDateWithMeta(curr.start)
-              : cloneDateWithMeta(curr.start, tzUtil.utcAdd(curr.start, 1, 'days'));
-          } else {
-            const durationString = getDurationString(curr.duration);
-            const durationParts = durationString.match(/-?\d{1,10}[WDHMS]/g);
-
-            if (durationParts && durationParts.length > 0) {
-              // Valid DURATION: apply each component (W/D/H/M/S)
-              const units = {
-                W: 'weeks',
-                D: 'days',
-                H: 'hours',
-                M: 'minutes',
-                S: 'seconds',
-              };
-              const sign = durationString.startsWith('-') ? -1 : 1;
-
-              let endTime = curr.start;
-              for (const part of durationParts) {
-                const value = Number.parseInt(part, 10) * sign;
-                const unit = units[part.slice(-1)];
-                endTime = tzUtil.utcAdd(endTime, value, unit);
-              }
-
-              curr.end = cloneDateWithMeta(curr.start, endTime);
-            } else {
-              // Malformed DURATION (e.g., "P", "PT", "") → treat as zero duration
-              // Follows Postel's Law: be liberal in what you accept
-              console.warn(`[node-ical] Ignoring malformed DURATION value: "${durationString}" – treating as zero duration`);
-              curr.end = cloneDateWithMeta(curr.start);
-            }
-          }
-        }
-
-        if (curr.uid) {
-          // If this is the first time we run into this UID, just save it.
-          if (par[curr.uid] === undefined) {
-            par[curr.uid] = curr;
-
-            if (par.method) { // RFC5545, 3.2
-              par[curr.uid].method = par.method;
-            }
-          } else if (curr.recurrenceid === undefined) {
-            // If we have multiple ical entries with the same UID, it's either going to be a
-            // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
-            // to the entry (SEQUENCE).
-
-            // TODO: Look into proper sequence logic.
-
-            // If we have the same UID as an existing record, and it *isn't* a specific recurrence ID,
-            // not quite sure what the correct behaviour should be.  For now, just take the new information
-            // and merge it with the old record by overwriting only the fields that appear in the new record.
-            let key;
-            for (key in curr) {
-              if (key !== null) {
-                par[curr.uid][key] = curr[key];
-              }
-            }
-          }
-
-          // If we have recurrence-id entries, list them as an array of recurrences keyed off of recurrence-id.
-          // To use - as you're running through the dates of an rrule, you can try looking it up in the recurrences
-          // array.  If it exists, then use the data from the calendar object in the recurrence instead of the parent
-          // for that day.
-
-          // NOTE:  Sometimes the RECURRENCE-ID record will show up *before* the record with the RRULE entry.  In that
-          // case, what happens is that the RECURRENCE-ID record ends up becoming both the parent record and an entry
-          // in the recurrences array, and then when we process the RRULE entry later it overwrites the appropriate
-          // fields in the parent record.
-
-          if (curr.recurrenceid !== undefined) {
-            // TODO:  Is there ever a case where we have to worry about overwriting an existing entry here?
-
-            // Create a copy of the current object to save in our recurrences array.  (We *could* just do par = curr,
-            // except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we
-            // would end up with a shared reference that would cause us to overwrite *both* records at the point
-            // that we try and fix up the parent record.)
-            const recurrenceObject = {};
-            let key;
-            for (key in curr) {
-              if (key !== null) {
-                recurrenceObject[key] = curr[key];
-              }
-            }
-
-            if (recurrenceObject.recurrences !== undefined) {
-              delete recurrenceObject.recurrences;
-            }
-
-            // If we don't have an array to store recurrences in yet, create it.
-            if (par[curr.uid].recurrences === undefined) {
-              par[curr.uid].recurrences = {};
-            }
-
-            // Store the recurrence override with dual-key strategy (same as EXDATE):
-            // - Date-only key (YYYY-MM-DD) for simple lookups
-            // - Full ISO string for precise matching when multiple instances occur per day
-            if (typeof curr.recurrenceid.toISOString === 'function') {
-              const isoString = curr.recurrenceid.toISOString();
-
-              // For date-only events, use local date components to avoid UTC timezone shift
-              const dateKey = getDateKey(curr.recurrenceid);
-
-              // Primary key: date-only for backward compatibility
-              par[curr.uid].recurrences[dateKey] = recurrenceObject;
-
-              // Additional key: full timestamp for events recurring multiple times per day
-              // Note: dateOnly is already set by dateParameter()
-              if (!curr.recurrenceid.dateOnly) {
-                par[curr.uid].recurrences[isoString] = recurrenceObject;
-              }
-            } else {
-              console.warn(`[node-ical] No toISOString function in recurrenceid: ${curr.recurrenceid}`);
-              // Skip malformed recurrence-id entries to avoid storing invalid keys
-            }
-          }
-
-          // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
-          // let's make sure to clear the recurrenceid off the parent field.
-          if (curr.uid !== '__proto__'
-            && par[curr.uid].rrule !== undefined
-            && par[curr.uid].recurrenceid !== undefined) {
-            delete par[curr.uid].recurrenceid;
-          }
-        } else if (component === 'VALARM' && (par.type === 'VEVENT' || par.type === 'VTODO')) {
-          par.alarms ??= [];
-          par.alarms.push(curr);
-        } else {
-          const id = randomUUID();
-          par[id] = curr;
-
-          if (par.method) { // RFC5545, 3.2
-            par[id].method = par.method;
-          }
-        }
-
-        return par;
-      };
-
-      // Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
-      // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
-      // due to the subtypes.
-
-      if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
-        let rule = curr.rrule.replace('RRULE:', '');
-        // Make sure the rrule starts with FREQ=
-        rule = rule.slice(rule.lastIndexOf('FREQ='));
-        // If no rule start date
-        if (rule.includes('DTSTART') === false) {
-          // This a whole day event
-          if (curr.datetype === 'date') {
-            const originalStart = curr.start;
-            // Get the timezone offset
-            // The internal date is stored in UTC format
-            const offset = originalStart.getTimezoneOffset();
-            let nextStart;
-
-            // Only east of gmt is a problem
-            if (offset < 0) {
-              // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
-              // Make the internally stored DATE the actual date (not UTC offseted)
-              // Luxon expects local time, not utc, so gets start date wrong if not adjusted
-              nextStart = new Date(originalStart.getTime() + (Math.abs(offset) * 60_000));
-            } else {
-              // Strip any residual time component by rebuilding local midnight
-              nextStart = new Date(
-                originalStart.getFullYear(),
-                originalStart.getMonth(),
-                originalStart.getDate(),
-                0,
-                0,
-                0,
-                0,
-              );
-            }
-
-            curr.start = nextStart;
-
-            // Preserve any metadata that was attached to the original Date instance.
-            if (originalStart && originalStart.tz) {
-              tzUtil.attachTz(curr.start, originalStart?.tz);
-            }
-
-            if (originalStart && originalStart.dateOnly === true) {
-              curr.start.dateOnly = true;
-            }
-          }
-
-          // If the date has an toISOString function
-          if (curr.start && typeof curr.start.toISOString === 'function') {
-            try {
-              // If the original date has a TZID, add it
-              // BUT: UTC (Etc/UTC, UTC, Etc/GMT) should use ISO format with Z, not TZID
-              const isUtc = tzUtil.isUtcTimezone(curr.start.tz);
-
-              // For date-only events (VALUE=DATE), we need to preserve that information
-              // so rrule-temporal can properly validate UNTIL values.
-              // Use local date components since dateOnly dates are created with local timezone
-              // (see dateParameter where new Date(year, month, day) is used without UTC)
-              if (curr.start.dateOnly) {
-                // Format: YYYYMMDD using local date components
-                const year = curr.start.getFullYear();
-                const month = String(curr.start.getMonth() + 1).padStart(2, '0');
-                const day = String(curr.start.getDate()).padStart(2, '0');
-                rule += `;DTSTART;VALUE=DATE:${year}${month}${day}`;
-              } else if (curr.start.tz && !isUtc) {
-                const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-                const localStamp = tzUtil.formatDateForRrule(curr.start, tzInfo);
-                const tzidLabel = tzInfo.iana || tzInfo.etc || tzInfo.original;
-
-                if (localStamp && tzidLabel) {
-                  // RFC5545 requires DTSTART to be expressed in local time when a TZID is present.
-                  rule += `;DTSTART;TZID=${tzidLabel}:${localStamp}`;
-                } else if (localStamp) {
-                  // Fall back to a floating DTSTART (still without a trailing Z) if we lack a dependable TZ label.
-                  rule += `;DTSTART=${localStamp}`;
-                } else {
-                  // Ultimate fallback: emit a UTC value (legacy behaviour) rather than crashing.
-                  rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
-                }
-              } else {
-                rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
-              }
-
-              rule = rule.replace(/\.\d{3}/, '');
-            } catch (error) { // This should not happen, issue #56
-              throw new Error('ERROR when trying to convert to ISOString ' + error);
-            }
-          } else {
-            throw new Error('No toISOString function in curr.start ' + curr.start);
-          }
-        }
-
-        // Create RRuleTemporal with separate DTSTART and RRULE parameters
-        if (curr.start) {
-          // Extract RRULE segments while preserving everything except inline DTSTART
-          // When rule contains DTSTART;TZID=..., splitting on ';' produces orphaned
-          // TZID= and VALUE= segments that must also be filtered out
-          let rruleOnly = rule.split(';')
-            .filter(segment =>
-              !segment.startsWith('DTSTART')
-              && !segment.startsWith('VALUE=')
-              && !segment.startsWith('TZID='))
-            .join(';');
-
-          // Normalize UNTIL for rrule-temporal 1.4.2+ compatibility:
-          // - DATE-only DTSTART: UNTIL must also be DATE-only (strip time)
-          // - DATE-TIME DTSTART: UNTIL must be UTC with Z suffix
-          if (rruleOnly.includes('UNTIL=')) {
-            const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/);
-            if (untilMatch) {
-              const [, datePart, timePart, zSuffix] = untilMatch;
-
-              if (curr.start.dateOnly) {
-                // DATE-only: strip time from UNTIL
-                if (timePart) {
-                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/, `UNTIL=${datePart}`);
-                }
-              } else if (!timePart) {
-                // DATE-TIME DTSTART but UNTIL has no time part (Google Calendar bug)
-                // Interpret UNTIL as end-of-day (23:59:59) in the event's timezone, then convert to UTC
-                let converted = false;
-                if (curr.start.tz) {
-                  try {
-                    const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-                    const untilLocal = datePart + 'T235959'; // End of day in local timezone
-
-                    let untilDateObject;
-                    if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
-                      untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
-                    } else if (Number.isFinite(tzInfo.offsetMinutes) && typeof tzInfo.offset === 'string' && tzInfo.offset) {
-                      untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
-                    }
-
-                    if (untilDateObject) {
-                      const untilUtc = untilDateObject.toISOString().replaceAll(/[-:]/g, '').replace(/\.\d{3}/, '');
-                      rruleOnly = rruleOnly.replace(/UNTIL=(\d{8})(?!T)/, `UNTIL=${untilUtc}`);
-                      converted = true;
-                    }
-                  } catch {/* Fall through to UTC fallback */}
-                }
-
-                if (!converted) {
-                  // No timezone info available - assume UNTIL date means end-of-day UTC
-                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8})(?!T)/, 'UNTIL=$1T235959Z');
-                }
-              } else if (timePart && !zSuffix) {
-                // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
-                let converted = false;
-                if (curr.start.tz) {
-                  try {
-                    const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-                    const untilLocal = datePart + timePart;
-                    let untilDateObject;
-
-                    if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
-                      untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
-                    } else if (Number.isFinite(tzInfo.offsetMinutes)) {
-                      untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
-                    }
-
-                    if (untilDateObject) {
-                      const untilUtc = untilDateObject.toISOString().replaceAll(/[-:]/g, '').replace(/\.\d{3}/, '');
-                      rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/, `UNTIL=${untilUtc}`);
-                      converted = true;
-                    }
-                  } catch {/* Fall through to append Z */}
-                }
-
-                if (!converted) {
-                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8}T\d{6})(?!Z)/, 'UNTIL=$1Z');
-                }
-              }
-            }
-          }
-
-          // For DATE-only events, we need to include DTSTART;VALUE=DATE in the rruleString
-          // because rrule-temporal needs to know it's a DATE (not DATE-TIME) to validate UNTIL
-          if (curr.start.dateOnly) {
-            // Build DTSTART;VALUE=DATE:YYYYMMDD from curr.start
-            // Use local getters (not UTC) to match dateParameter which creates Date with local components
-            const year = curr.start.getFullYear();
-            const month = String(curr.start.getMonth() + 1).padStart(2, '0');
-            const day = String(curr.start.getDate()).padStart(2, '0');
-            const dtstartString = `DTSTART;VALUE=DATE:${year}${month}${day}`;
-
-            // Prepend DTSTART to rruleString
-            const fullRruleString = `${dtstartString}\nRRULE:${rruleOnly}`;
-
-            const rruleTemporal = new RRuleTemporal({
-              rruleString: fullRruleString,
-            });
-
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
-          } else {
-            // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
-            let dtstartTemporal;
-
-            if (curr.start.tz) {
-              // Has timezone - use Intl to get the local wall-clock time in that timezone
-              const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-              const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
-
-              try {
-                // Extract local time components in the target timezone.
-                // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
-                // wall-clock time in the event's timezone.
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                  timeZone,
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: 'numeric',
-                  second: 'numeric',
-                  hour12: false,
-                });
-
-                const parts = formatter.formatToParts(curr.start);
-                const partMap = {};
-                for (const part of parts) {
-                  if (part.type !== 'literal') {
-                    partMap[part.type] = Number.parseInt(part.value, 10);
-                  }
-                }
-
-                // Create a PlainDateTime from the local time components
-                const plainDateTime = Temporal.PlainDateTime.from({
-                  year: partMap.year,
-                  month: partMap.month,
-                  day: partMap.day,
-                  hour: partMap.hour,
-                  minute: partMap.minute,
-                  second: partMap.second,
-                });
-
-                dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
-              } catch (error) {
-                // Invalid timezone - fall back to UTC interpretation
-                console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
-                dtstartTemporal = Temporal.ZonedDateTime.from({
-                  year: curr.start.getUTCFullYear(),
-                  month: curr.start.getUTCMonth() + 1,
-                  day: curr.start.getUTCDate(),
-                  hour: curr.start.getUTCHours(),
-                  minute: curr.start.getUTCMinutes(),
-                  second: curr.start.getUTCSeconds(),
-                  timeZone: 'UTC',
-                });
-              }
-            } else {
-              // No timezone - use UTC
-              dtstartTemporal = Temporal.ZonedDateTime.from({
-                year: curr.start.getUTCFullYear(),
-                month: curr.start.getUTCMonth() + 1,
-                day: curr.start.getUTCDate(),
-                hour: curr.start.getUTCHours(),
-                minute: curr.start.getUTCMinutes(),
-                second: curr.start.getUTCSeconds(),
-                timeZone: 'UTC',
-              });
-            }
-
-            const rruleTemporal = new RRuleTemporal({
-              rruleString: rruleOnly,
-              dtstart: dtstartTemporal,
-            });
-
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
-          }
-        }
-      }
-
-      return originalEnd.call(this, value, parameters, curr, stack);
-    },
-    SUMMARY: storeParameter('summary'),
-    DESCRIPTION: storeParameter('description'),
-    URL: storeParameter('url'),
-    UID: storeParameter('uid'),
-    LOCATION: storeParameter('location'),
-    DTSTART(value, parameters, curr, stack, line) {
-      // If already defined, this is a duplicate for this event
-      if (curr.start === undefined) {
-        curr = dateParameter('start')(value, parameters, curr, stack);
-        return typeParameter('datetype')(value, parameters, curr);
-      }
-
-      throw new Error('duplicate DTSTART encountered, line=' + line);
-    },
-    DTEND(value, parameters, curr, stack, line) {
-      // If already defined, this is a duplicate for this event
-      if (curr.end === undefined) {
-        return dateParameter('end')(value, parameters, curr, stack);
-      }
-
-      throw new Error('duplicate DTEND encountered, line=' + line);
-    },
-    EXDATE: exdateParameter('exdate'),
-    ' CLASS': storeParameter('class'), // Should there be a space in this property?
-    TRANSP: storeParameter('transparency'),
-    GEO: geoParameter('geo'),
-    'PERCENT-COMPLETE': storeParameter('completion'),
-    COMPLETED: dateParameter('completed'),
-    CATEGORIES: categoriesParameter('categories'),
-    FREEBUSY: freebusyParameter('freebusy'),
-    DTSTAMP: dateParameter('dtstamp'),
-    CREATED: dateParameter('created'),
-    'LAST-MODIFIED': dateParameter('lastmodified'),
-    'RECURRENCE-ID': recurrenceParameter('recurrenceid'),
-    RRULE(value, parameters, curr, stack, line) {
-      curr.rrule = line;
-      return curr;
-    },
-  },
-
-  handleObject(name, value, parameters, ctx, stack, line) {
-    if (this.objectHandlers[name]) {
-      return this.objectHandlers[name](value, parameters, ctx, stack, line);
-    }
-
-    // Handling custom properties
-    if (/X-[\w-]+/.test(name) && stack.length > 0) {
-      // Trimming the leading and perform storeParam
-      name = name.slice(2);
-      return storeParameter(name)(value, parameters, ctx, stack, line);
-    }
-
-    return storeParameter(name.toLowerCase())(value, parameters, ctx);
-  },
-
-  parseLines(lines, limit, ctx, stack, lastIndex, cb) {
-    if (!cb && typeof ctx === 'function') {
-      cb = ctx;
-      ctx = undefined;
-    }
-
-    ctx ||= {};
-    stack ||= [];
-
-    let limitCounter = 0;
-
-    let i = lastIndex || 0;
-    for (let ii = lines.length; i < ii; i++) {
-      let l = lines[i];
-      // Unfold : RFC#3.1
-      while (lines[i + 1] && /[ \t]/.test(lines[i + 1][0])) {
-        l += lines[i + 1].slice(1);
-        i++;
-      }
-
-      // Remove any double quotes in any tzid statement// except around (utc+hh:mm
-      if (l.includes('TZID=') && !l.includes('"(')) {
-        l = l.replaceAll('"', '');
-      }
-
-      const exp = /^([\w\d-]+)((?:;[\w\d-]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/;
-      let kv = l.match(exp);
-
-      if (kv === null) {
-        // Invalid line - must have k&v
-        continue;
-      }
-
-      kv = kv.slice(1);
-
-      const value = kv.at(-1);
-      const name = kv[0];
-      const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
-
-      ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
-      if (++limitCounter > limit) {
-        break;
-      }
-    }
-
-    if (i >= lines.length) {
-      // Type and params are added to the list of items, get rid of them.
-      delete ctx.type;
-      delete ctx.params;
-    }
-
-    if (cb) {
-      if (i < lines.length) {
-        setImmediate(() => {
-          this.parseLines(lines, limit, ctx, stack, i + 1, cb);
-        });
-      } else {
-        setImmediate(() => {
-          cb(null, ctx);
-        });
-      }
-    } else {
-      return ctx;
-    }
-  },
-
-  parseICS(string, cb) {
-    const lines = string.split(/\r?\n/);
-    let ctx;
-
-    if (cb) {
-      // Asynchronous execution
-      this.parseLines(lines, 2000, cb);
-    } else {
-      // Synchronous execution
-      ctx = this.parseLines(lines, lines.length);
-      return ctx;
-    }
-  },
-};
-
-
-/***/ }),
-
-/***/ 2839:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const fs = __nccwpck_require__(9521);
-const ical = __nccwpck_require__(6454);
-
-/**
- * ICal event object.
- *
- * These two fields are always present:
- *  - type
- *  - params
- *
- * The rest of the fields may or may not be present depending on the input.
- * Do not assume any of these fields are valid and check them before using.
- * Most types are simply there as a general guide for IDEs and users.
- *
- * @typedef iCalEvent
- * @type {object}
- *
- * @property {string} type           - Type of event.
- * @property {Array} params          - Extra event parameters.
- *
- * @property {?object} start         - When this event starts.
- * @property {?object} end           - When this event ends.
- *
- * @property {?string} summary       - Event summary string.
- * @property {?string} description   - Event description.
- *
- * @property {?object} dtstamp       - DTSTAMP field of this event.
- *
- * @property {?object} created       - When this event was created.
- * @property {?object} lastmodified  - When this event was last modified.
- *
- * @property {?string} uid           - Unique event identifier.
- *
- * @property {?string} status        - Event status.
- *
- * @property {?string} sequence      - Event sequence.
- *
- * @property {?string} url           - URL of this event.
- *
- * @property {?string} location      - Where this event occurs.
- * @property {?{
- *     lat: number, lon: number
- * }} geo                            - Lat/lon location of this event.
- *
- * @property {?Array.<string>}       - Array of event catagories.
- */
-/**
- * Object containing iCal events.
- * @typedef {Object.<string, iCalEvent>} iCalData
- */
-/**
- * Callback for iCal parsing functions with error and iCal data as a JavaScript object.
- * @callback icsCallback
- * @param {Error} err
- * @param {iCalData} ics
- */
-/**
- * A Promise that is undefined if a compatible callback is passed.
- * @typedef {(Promise.<iCalData>|undefined)} optionalPromise
- */
-
-// utility to allow callbacks to be used for promises
-function promiseCallback(fn, cb) {
-  const promise = new Promise(fn);
-  if (!cb) {
-    return promise;
-  }
-
-  promise
-    .then(returnValue => {
-      cb(null, returnValue);
-    })
-    .catch(error => {
-      cb(error, null);
-    });
-}
-
-// Sync functions
-const sync = {};
-// Async functions
-const async = {};
-// Auto-detect functions for backwards compatibility.
-const autodetect = {};
-
-/**
- * Download an iCal file from the web and parse it.
- *
- * @param {string} url                - URL of file to request.
- * @param {Object|icsCallback} [opts] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
- *                                      Alternatively you can pass the callback function directly.
- *                                      If no callback is provided a promise will be returned.
- * @param {icsCallback} [cb]          - Callback function.
- *                                      If no callback is provided a promise will be returned.
- *
- * @returns {optionalPromise} Promise is returned if no callback is passed.
- */
-async.fromURL = function (url, options, cb) {
-  // Normalize overloads: (url, cb) or (url, options, cb)
-  if (typeof options === 'function' && cb === undefined) {
-    cb = options;
-    options = undefined;
-  }
-
-  return promiseCallback((resolve, reject) => {
-    const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
-
-    fetch(url, fetchOptions)
-      .then(response => {
-        if (!response.ok) {
-          // Mimic previous error style
-          throw new Error(`${response.status} ${response.statusText}`);
-        }
-
-        return response.text();
-      })
-      .then(data => {
-        ical.parseICS(data, (error, ics) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-
-          resolve(ics);
-        });
-      })
-      .catch(error => {
-        reject(error);
-      });
-  }, cb);
-};
-
-/**
- * Load iCal data from a file and parse it.
- *
- * @param {string} filename   - File path to load.
- * @param {icsCallback} [cb]  - Callback function.
- *                              If no callback is provided a promise will be returned.
- *
- * @returns {optionalPromise} Promise is returned if no callback is passed.
- */
-async.parseFile = function (filename, cb) {
-  return promiseCallback((resolve, reject) => {
-    fs.readFile(filename, 'utf8', (error, data) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      ical.parseICS(data, (error, ics) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(ics);
-      });
-    });
-  }, cb);
-};
-
-/**
- * Parse iCal data from a string.
- *
- * @param {string} data       - String containing iCal data.
- * @param {icsCallback} [cb]  - Callback function.
- *                              If no callback is provided a promise will be returned.
- *
- * @returns {optionalPromise} Promise is returned if no callback is passed.
- */
-async.parseICS = function (data, cb) {
-  return promiseCallback((resolve, reject) => {
-    ical.parseICS(data, (error, ics) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve(ics);
-    });
-  }, cb);
-};
-
-/**
- * Load iCal data from a file and parse it.
- *
- * @param {string} filename   - File path to load.
- *
- * @returns {iCalData} Parsed iCal data.
- */
-sync.parseFile = function (filename) {
-  const data = fs.readFileSync(filename, 'utf8');
-  return ical.parseICS(data);
-};
-
-/**
- * Parse iCal data from a string.
- *
- * @param {string} data - String containing iCal data.
- *
- * @returns {iCalData} Parsed iCal data.
- */
-sync.parseICS = function (data) {
-  return ical.parseICS(data);
-};
-
-/**
- * Load iCal data from a file and parse it.
- *
- * @param {string} filename   - File path to load.
- * @param {icsCallback} [cb]  - Callback function.
- *                              If no callback is provided this function runs synchronously.
- *
- * @returns {iCalData|undefined} Parsed iCal data or undefined if a callback is being used.
- */
-autodetect.parseFile = function (filename, cb) {
-  if (!cb) {
-    return sync.parseFile(filename);
-  }
-
-  async.parseFile(filename, cb);
-};
-
-/**
- * Parse iCal data from a string.
- *
- * @param {string} data       - String containing iCal data.
- * @param {icsCallback} [cb]  - Callback function.
- *                              If no callback is provided this function runs synchronously.
- *
- * @returns {iCalData|undefined} Parsed iCal data or undefined if a callback is being used.
- */
-autodetect.parseICS = function (data, cb) {
-  if (!cb) {
-    return sync.parseICS(data);
-  }
-
-  async.parseICS(data, cb);
-};
-
-/**
- * Generate date key for EXDATE/RECURRENCE-ID lookups
- * Must match ical.js getDateKey semantics for lookups to succeed.
- * @param {Date} date
- * @param {boolean} isFullDay
- * @returns {string} Date key in YYYY-MM-DD format
- */
-function generateDateKey(date, isFullDay) {
-  if (isFullDay) {
-    // Use local getters for date-only events to match ical.js behavior
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  }
-
-  // For timed events, return date portion only to match ical.js
-  return date.toISOString().slice(0, 10);
-}
-
-/**
- * Create date from UTC components to avoid DST issues for full-day events.
- * This ensures that a DATE value of 20250107 stays as January 7th regardless of timezone.
- * @param {Date} utcDate - Date from RRULE (UTC midnight)
- * @returns {Date} Date representing the same calendar day at local midnight
- */
-function createLocalDateFromUTC(utcDate) {
-  // For full-day events, we want the calendar date, not the moment in time
-  // Extract the UTC date components and create a local date with same calendar day
-  const year = utcDate.getUTCFullYear();
-  const month = utcDate.getUTCMonth();
-  const day = utcDate.getUTCDate();
-  // Create date at midnight in local timezone with same calendar day
-  return new Date(year, month, day, 0, 0, 0, 0);
-}
-
-/**
- * Get event duration in milliseconds.
- * @param {object} eventData - The event data (original or override)
- * @param {boolean} isFullDay - Whether this is a full-day event
- * @returns {number} Duration in milliseconds
- */
-function getEventDurationMs(eventData, isFullDay) {
-  if (eventData?.start && eventData?.end) {
-    return new Date(eventData.end).getTime() - new Date(eventData.start).getTime();
-  }
-
-  if (isFullDay) {
-    return 24 * 60 * 60 * 1000;
-  }
-
-  return 0;
-}
-
-/**
- * Calculate end time for an event instance
- * @param {Date} start - The start time of this specific instance
- * @param {object} eventData - The event data (original or override)
- * @param {boolean} isFullDay - Whether this is a full-day event
- * @param {number} [baseDurationMs] - Base duration (used when override lacks end)
- * @returns {Date} End time for this instance
- */
-function calculateEndTime(start, eventData, isFullDay, baseDurationMs) {
-  const durationMs = (eventData?.start && eventData?.end)
-    ? getEventDurationMs(eventData, isFullDay)
-    : (baseDurationMs ?? (isFullDay ? 24 * 60 * 60 * 1000 : 0));
-
-  return new Date(start.getTime() + durationMs);
-}
-
-/**
- * Process a non-recurring event
- * @param {object} event
- * @param {object} options
- * @returns {Array} Array of event instances
- */
-function processNonRecurringEvent(event, options) {
-  const {from, to, expandOngoing} = options;
-  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
-  const baseDurationMs = getEventDurationMs(event, isFullDay);
-
-  // Ensure we have a proper Date object
-  let eventStart = event.start instanceof Date ? event.start : new Date(event.start);
-
-  // For full-day events, normalize to local calendar date to avoid timezone shifts
-  if (isFullDay) {
-    eventStart = createLocalDateFromUTC(eventStart);
-  }
-
-  const eventEnd = calculateEndTime(eventStart, event, isFullDay, baseDurationMs);
-
-  // Check if event is within range
-  const inRange = expandOngoing
-    ? (eventEnd >= from && eventStart <= to)
-    : (eventStart >= from && eventStart <= to);
-
-  if (!inRange) {
-    return [];
-  }
-
-  return [{
-    start: eventStart,
-    end: eventEnd,
-    summary: event.summary || '',
-    isFullDay,
-    isRecurring: false,
-    isOverride: false,
-    event,
-  }];
-}
-
-/**
- * Process a recurring event instance
- * @param {Date} date
- * @param {object} event
- * @param {object} options
- * @param {number} baseDurationMs
- * @returns {object|null} Event instance or null if excluded
- */
-function processRecurringInstance(date, event, options, baseDurationMs) {
-  const {excludeExdates, includeOverrides} = options;
-  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
-
-  // Generate date key for lookups
-  const dateKey = generateDateKey(date, isFullDay);
-
-  // Check EXDATE exclusions
-  if (excludeExdates && event.exdate && event.exdate[dateKey]) {
-    return null;
-  }
-
-  // Check for RECURRENCE-ID override
-  let instanceEvent = event;
-  let isOverride = false;
-
-  if (includeOverrides && event.recurrences && event.recurrences[dateKey]) {
-    instanceEvent = event.recurrences[dateKey];
-    isOverride = true;
-  }
-
-  // Calculate start time for this instance
-  let start = date;
-
-  // If override has its own DTSTART, use that instead of the RRULE-generated date
-  if (isOverride && instanceEvent.start) {
-    start = instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start);
-  }
-
-  // For full-day events, extract UTC components to avoid DST issues
-  if (isFullDay) {
-    start = createLocalDateFromUTC(start);
-  }
-
-  // For recurring events, use override duration when available; otherwise use base duration
-  const end = calculateEndTime(start, instanceEvent, isFullDay, baseDurationMs);
-
-  return {
-    start,
-    end,
-    summary: instanceEvent.summary || event.summary || '',
-    isFullDay,
-    isRecurring: true,
-    isOverride,
-    event: instanceEvent,
-  };
-}
-
-/**
- * Check if an event instance is within the specified date range
- * @param {object} instance - Event instance with start, end, isFullDay
- * @param {Date} from - Range start
- * @param {Date} to - Range end
- * @param {boolean} expandOngoing - Whether to include ongoing events
- * @returns {boolean} Whether instance is in range
- */
-function isInstanceInRange(instance, from, to, expandOngoing) {
-  if (instance.isFullDay) {
-    // For full-day events, compare calendar dates only (ignore time component)
-    const instanceDate = new Date(instance.start.getFullYear(), instance.start.getMonth(), instance.start.getDate());
-    const fromDate = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-    const toDate = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-    const instanceEndDate = new Date(instance.end.getFullYear(), instance.end.getMonth(), instance.end.getDate());
-
-    return expandOngoing
-      ? (instanceEndDate >= fromDate && instanceDate <= toDate)
-      : (instanceDate >= fromDate && instanceDate <= toDate);
-  }
-
-  // For timed events: use exact timestamp comparison
-  return expandOngoing
-    ? (instance.end >= from && instance.start <= to)
-    : (instance.start >= from && instance.start <= to);
-}
-
-/**
- * Expand a recurring event into individual instances within a date range.
- * Handles RRULE expansion, EXDATE filtering, and RECURRENCE-ID overrides.
- * Also works for non-recurring events (returns single instance if within range).
- *
- * @param {object} event - The VEVENT object (with or without rrule)
- * @param {object} options - Expansion options
- * @param {Date} options.from - Start of date range (inclusive)
- * @param {Date} options.to - End of date range (inclusive)
- * @param {boolean} [options.includeOverrides=true] - Apply RECURRENCE-ID overrides
- * @param {boolean} [options.excludeExdates=true] - Filter out EXDATE exclusions
- * @param {boolean} [options.expandOngoing=false] - Include events that started before range but still ongoing
- * @returns {Array<{start: Date, end: Date, summary: string, isFullDay: boolean, isRecurring: boolean, isOverride: boolean, event: object}>} Sorted array of event instances
- */
-function expandRecurringEvent(event, options) {
-  const {
-    from,
-    to,
-    includeOverrides = true,
-    excludeExdates = true,
-    expandOngoing = false,
-  } = options;
-
-  // Input validation
-  if (!(from instanceof Date) || Number.isNaN(from.getTime())) {
-    throw new TypeError('options.from must be a valid Date object');
-  }
-
-  if (!(to instanceof Date) || Number.isNaN(to.getTime())) {
-    throw new TypeError('options.to must be a valid Date object');
-  }
-
-  if (from > to) {
-    throw new RangeError('options.from must be before or equal to options.to');
-  }
-
-  // Handle non-recurring events
-  if (!event.rrule) {
-    return processNonRecurringEvent(event, {from, to, expandOngoing});
-  }
-
-  // Handle recurring events
-  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
-  const baseDurationMs = getEventDurationMs(event, isFullDay);
-
-  // For full-day events, adjust 'to' to end of day to ensure RRULE includes the full day
-  // in all timezones (otherwise timezone offset can truncate the last day)
-  let searchTo = to;
-  if (isFullDay && to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0) {
-    searchTo = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999);
-  }
-
-  // For expandOngoing, look back by the event duration to capture ongoing instances
-  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
-  const dates = event.rrule.between(searchFrom, searchTo, true);
-  const instances = [];
-
-  for (const date of dates) {
-    const instance = processRecurringInstance(date, event, {excludeExdates, includeOverrides}, baseDurationMs);
-    if (instance && isInstanceInRange(instance, from, to, expandOngoing)) {
-      instances.push(instance);
-    }
-  }
-
-  return instances.sort((a, b) => a.start - b.start);
-}
-
-// Export api functions
-module.exports = {
-  // Autodetect
-  fromURL: async.fromURL,
-  parseFile: autodetect.parseFile,
-  parseICS: autodetect.parseICS,
-  // Sync
-  sync,
-  // Async
-  async,
-  // Recurring event expansion
-  expandRecurringEvent,
-  // Other backwards compat things
-  objectHandlers: ical.objectHandlers,
-  handleObject: ical.handleObject,
-  parseLines: ical.parseLines,
-};
-
-
-/***/ }),
-
-/***/ 5108:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-// Thin abstraction over Intl to centralize all timezone logic
-// This simplifies swapping libraries later and is easy to mock in tests.
-
-// Minimal alias map to emulate the subset of moment.tz.link behavior tests rely on
-const aliasMap = new Map();
-const windowsZones = __nccwpck_require__(7114);
-
-/**
- * Normalize a Windows timezone display label so that visually similar strings compare equally.
- * Collapses whitespace, trims the result, and lowercases the value for case-insensitive lookups.
- *
- * @param {string} label
- * @returns {string}
- */
-function normalizeWindowsLabel(label) {
-  return String(label)
-    .replaceAll(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-}
-
-/**
- * Build an index of normalized Windows timezone labels (and common variants) to their data entries.
- * This lets us resolve the canonical IANA identifier without relying on fuzzy substring matching.
- *
- * @param {Record<string, {iana: string[]}>} source
- * @returns {Map<string, {iana: string[]}>}
- */
-function buildWindowsLabelIndex(source) {
-  const index = new Map();
-
-  const addVariant = (label, data) => {
-    const normalized = normalizeWindowsLabel(label);
-    if (!normalized || index.has(normalized)) {
-      return;
-    }
-
-    index.set(normalized, data);
-  };
-
-  for (const [label, data] of Object.entries(source)) {
-    addVariant(label, data);
-
-    const withoutOffset = label.replace(/^\(utc[^)]*\)\s*/i, '').replace(/^\(gmt[^)]*\)\s*/i, '');
-    if (withoutOffset !== label) {
-      addVariant(withoutOffset, data);
-
-      if (withoutOffset.includes(',')) {
-        for (const segment of withoutOffset.split(',')) {
-          addVariant(segment, data);
-        }
-      }
-    }
-  }
-
-  return index;
-}
-
-const windowsLabelIndex = buildWindowsLabelIndex(windowsZones);
-
-/**
- * Resolve a Windows/legacy timezone label to the canonical IANA identifier exported in windowsZones.json.
- *
- * @param {string} label
- * @returns {string|null}
- */
-function mapWindowsZone(label) {
-  const exact = windowsZones[label];
-  if (exact && Array.isArray(exact.iana) && exact.iana.length > 0) {
-    return exact.iana[0];
-  }
-
-  const normalized = normalizeWindowsLabel(label);
-  const indexed = windowsLabelIndex.get(normalized);
-  if (indexed && Array.isArray(indexed.iana) && indexed.iana.length > 0) {
-    return indexed.iana[0];
-  }
-
-  if (label.includes(',')) {
-    // Some feeds pass comma-separated display names; try each segment individually.
-    for (const segment of label.split(',')) {
-      const variant = windowsLabelIndex.get(normalizeWindowsLabel(segment));
-      if (variant && Array.isArray(variant.iana) && variant.iana.length > 0) {
-        return variant.iana[0];
-      }
-    }
-  }
-
-  return null;
-}
-
-function pad2(value) {
-  return String(value).padStart(2, '0');
-}
-
-// Simple per-zone formatter cache to reduce Intl constructor churn
-const dtfCache = new Map();
-
-// Memoize IANA zone validity checks to avoid repeated Intl constructor throws
-const validIanaCache = new Map();
-
-/**
- * Get a cached Intl.DateTimeFormat instance for the specified timezone.
- * Creates and caches a new formatter if one doesn't exist for the zone.
- *
- * @param {string} tz - The IANA timezone identifier.
- * @returns {Intl.DateTimeFormat} The cached formatter instance.
- */
-function getFormatter(tz) {
-  let formatter = dtfCache.get(tz);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-    dtfCache.set(tz, formatter);
-  }
-
-  return formatter;
-}
-
-/**
- * Work around the legacy Intl bug where some Node.js releases prior to v22 emit "24" for the
- * hour component at local midnight (verified with Node 20 against zones like Africa/Abidjan).
- * Node 22+ normalizes the output to "00", so this helper becomes unnecessary once we require
- * Node 22 or newer and can be safely removed at that point.
- *
- * @param {Date} date
- * @param {Intl.DateTimeFormat} formatter
- * @param {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}} parts
- * @returns {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}}
- */
-function normalizeMidnightParts(date, formatter, parts) {
-  if (!parts || typeof formatter?.formatToParts !== 'function') {
-    return parts;
-  }
-
-  const next = new Date(date.getTime() + 1000);
-  const nextParts = formatter.formatToParts(next);
-  for (const p of nextParts) {
-    if (p.type === 'year') {
-      parts.year = Number(p.value);
-    }
-
-    if (p.type === 'month') {
-      parts.month = Number(p.value);
-    }
-
-    if (p.type === 'day') {
-      parts.day = Number(p.value);
-    }
-  }
-
-  parts.hour = 0;
-  parts.minute = 0;
-  parts.second = 0;
-  return parts;
-}
-
-/**
- * Convert textual UTC offsets ("+05:30", "UTC-4", "(UTC+02:00)") into signed minute counts.
- *
- * @param {string} offset
- * @returns {number|undefined}
- */
-function offsetLabelToMinutes(offset) {
-  if (!offset) {
-    return undefined;
-  }
-
-  const trimmed = String(offset)
-    .trim()
-    .replace(/^\(?(?:utc|gmt)\)?\s*/i, '')
-    .replace(/\)$/, '')
-    .trim();
-  const match = trimmed.match(/^([+-])(\d{1,2})(?::?(\d{2}))?$/);
-  if (!match) {
-    return undefined;
-  }
-
-  const [, sign, hoursPart, minutesPart] = match;
-  const hours = Number(hoursPart);
-  const minutes = minutesPart ? Number(minutesPart) : 0;
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-    return undefined;
-  }
-
-  // Minutes must be < 60; IANA/ICS max absolute offset is 14:00
-  if (minutes >= 60) {
-    return undefined;
-  }
-
-  if (hours > 14 || (hours === 14 && minutes !== 0)) {
-    return undefined;
-  }
-
-  const total = (hours * 60) + minutes;
-  return sign === '-' ? -total : total;
-}
-
-function minutesToOffset(totalMinutes) {
-  if (!Number.isFinite(totalMinutes)) {
-    return undefined;
-  }
-
-  const sign = totalMinutes < 0 ? '-' : '+';
-  const absolute = Math.abs(totalMinutes);
-  const hours = Math.floor(absolute / 60);
-  const minutes = absolute % 60;
-  return `${sign}${pad2(hours)}:${pad2(minutes)}`;
-}
-
-function minutesToEtcZone(totalMinutes) {
-  if (!Number.isFinite(totalMinutes)) {
-    return undefined;
-  }
-
-  if (totalMinutes === 0) {
-    return 'Etc/GMT';
-  }
-
-  if (totalMinutes % 60 !== 0) {
-    return undefined;
-  }
-
-  const hours = Math.abs(totalMinutes) / 60;
-  const sign = totalMinutes > 0 ? '-' : '+'; // Etc/GMT zones invert sign
-  return `Etc/GMT${sign}${hours}`;
-}
-
-/**
- * Convert a `{year, month, day, hour, minute, second}` structure into UTC milliseconds.
- *
- * @param {{year: number, month: number, day: number, hour?: number, minute?: number, second?: number}} parts
- * @returns {number}
- */
-function ymdhmsToUtcMs(parts = {}) {
-  const {
-    year,
-    month,
-    day,
-    hour = 0,
-    minute = 0,
-    second = 0,
-  } = parts;
-
-  return Date.UTC(year, month - 1, day, hour, minute, second);
-}
-
-/**
- * Fixed-point iteration that aligns an initial UTC guess to the desired local wall time.
- * Runs up to three passes to survive DST gaps/folds and returns the closest valid instant.
- *
- * For spring-forward gaps (e.g., 2:30 AM during DST transition when clocks jump to 3:30 AM):
- * - Returns the first valid instant after the gap
- * For fall-back folds (e.g., 1:30 AM occurs twice when clocks fall back):
- * - Returns the first occurrence (standard time interpretation)
- *
- * @param {number} initialUtcMs
- * @param {{year: number, month: number, day: number, hour: number, minute: number, second: number}} targetParts
- * @param {(date: Date) => {year: number, month: number, day: number, hour: number, minute: number, second: number}} getLocalParts
- * @returns {Date}
- */
-function convergeLocalInstant(initialUtcMs, targetParts, getLocalParts) {
-  const targetUtc = ymdhmsToUtcMs(targetParts);
-  let t = initialUtcMs;
-  let estimate;
-  let delta = 0;
-
-  for (let i = 0; i < 3; i++) {
-    estimate = new Date(t);
-    const current = getLocalParts(estimate);
-    delta = ymdhmsToUtcMs(current) - targetUtc;
-    if (delta === 0) {
-      return estimate;
-    }
-
-    t -= delta;
-  }
-
-  const finalCandidate = new Date(t);
-  const finalDelta = ymdhmsToUtcMs(getLocalParts(finalCandidate)) - targetUtc;
-  if (finalDelta >= 0) {
-    return finalCandidate;
-  }
-
-  // Fall back to the last estimate, which will be the closest instant before the fold/gap.
-  return estimate;
-}
-
-/**
- * Interpret a TZID value (IANA, Windows display name, or offset label) and return structured metadata.
- *
- * @param {string} value
- * @returns {{original: string|undefined, iana: string|undefined, offset: string|undefined, offsetMinutes: number|undefined, etc: string|undefined}}
- */
-function resolveTZID(value) {
-  if (typeof value !== 'string' || value.length === 0) {
-    return {
-      original: undefined,
-      iana: undefined,
-      offset: undefined,
-      offsetMinutes: undefined,
-      etc: undefined,
-    };
-  }
-
-  let tz = value;
-  if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-    tz = guessLocalZone();
-  }
-
-  tz = tz.replace(/^"(.*)"$/, '$1');
-  const original = tz;
-
-  if (tz && (tz.includes(' ') || tz.includes(','))) {
-    const mapped = mapWindowsZone(tz);
-    if (mapped) {
-      tz = mapped;
-    }
-  }
-
-  let offsetMinutes;
-  if (tz && tz.startsWith('(')) {
-    const offsetMatch = tz.match(/([+-]\d{1,2}:\d{2})/);
-    if (offsetMatch) {
-      offsetMinutes = offsetLabelToMinutes(offsetMatch[1]);
-    }
-
-    tz = null;
-  }
-
-  if (offsetMinutes === undefined && tz) {
-    // Handle raw offset TZIDs like "UTC+02:00", "+0530", or "GMT-4" that skip the
-    // Windows-style parentheses but still represent fixed offsets.
-    const mins = offsetLabelToMinutes(tz);
-    if (Number.isFinite(mins)) {
-      offsetMinutes = mins;
-      tz = null;
-    }
-  }
-
-  const exact = findExactZoneMatch(tz);
-  const iana = exact || (tz && isValidIana(tz) ? tz : undefined);
-  const offset = minutesToOffset(offsetMinutes);
-  const etc = minutesToEtcZone(offsetMinutes);
-
-  return {
-    original,
-    iana,
-    offset,
-    offsetMinutes,
-    etc,
-  };
-}
-
-/**
- * Format a Date as a local wall-time string (`YYYYMMDDTHHmmss`) suitable for RRULE DTSTART emission.
- * Prefers Intl when a valid IANA zone exists; otherwise falls back to offset arithmetic.
- *
- * @param {Date} date
- * @param {{iana?: string, offsetMinutes?: number}} tzInfo
- * @returns {string|undefined}
- */
-function formatDateForRrule(date, tzInfo = {}) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-
-  if (tzInfo.iana && isValidIana(tzInfo.iana)) {
-    const formatter = getFormatter(tzInfo.iana);
-
-    const parts = formatter.formatToParts(date);
-    const numericParts = new Map([
-      ['year', 'year'],
-      ['month', 'month'],
-      ['day', 'day'],
-      ['hour', 'hour'],
-      ['minute', 'minute'],
-      ['second', 'second'],
-    ]);
-    const out = {};
-    for (const part of parts) {
-      const target = numericParts.get(part.type);
-      if (!target) {
-        continue;
-      }
-
-      out[target] = Number(part.value);
-    }
-
-    if (out.hour === 24) {
-      normalizeMidnightParts(date, formatter, out);
-    }
-
-    if (out.year && out.month && out.day && out.hour !== undefined && out.minute !== undefined && out.second !== undefined) {
-      return `${out.year}${pad2(out.month)}${pad2(out.day)}T${pad2(out.hour)}${pad2(out.minute)}${pad2(out.second)}`;
-    }
-  }
-
-  if (Number.isFinite(tzInfo.offsetMinutes)) {
-    const local = new Date(date.getTime() + (tzInfo.offsetMinutes * 60_000));
-    return `${local.getUTCFullYear()}${pad2(local.getUTCMonth() + 1)}${pad2(local.getUTCDate())}T${pad2(local.getUTCHours())}${pad2(local.getUTCMinutes())}${pad2(local.getUTCSeconds())}`;
-  }
-
-  return undefined;
-}
-
-/**
- * Attach non-enumerable timezone metadata to a Date instance so downstream consumers
- * can recover the originating TZID without leaking it into JSON/string output.
- *
- * @param {Date} date
- * @param {string|undefined} tzid
- * @returns {Date|undefined}
- */
-function attachTz(date, tzid) {
-  if (!date || !tzid) {
-    return date;
-  }
-
-  const hasSameValue = date.tz === tzid;
-  const isEnumerable = Object.prototype.propertyIsEnumerable.call(date, 'tz');
-  if (!hasSameValue || isEnumerable) {
-    Object.defineProperty(date, 'tz', {
-      value: tzid,
-      enumerable: false,
-      configurable: true,
-      writable: false,
-    });
-  }
-
-  return date;
-}
-
-function resolveZone(zone) {
-  if (!zone) {
-    return zone;
-  }
-
-  return aliasMap.get(zone) || zone;
-}
-
-function guessLocalZone() {
-  return new Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-/**
- * Return the full list of IANA time zone names known to the runtime.
- *
- * We depend on Node 18+, so `Intl.supportedValuesOf('timeZone')` is guaranteed
- * to exist and yields the canonical list without requiring extra guards.
- */
-function getZoneNames() {
-  return Intl.supportedValuesOf('timeZone');
-}
-
-function findExactZoneMatch(tz) {
-  if (!tz) {
-    return undefined;
-  }
-
-  const z = resolveZone(tz);
-  return isValidIana(z) ? z : undefined;
-}
-
-function isValidIana(zone) {
-  if (!zone) {
-    return false;
-  }
-
-  // Normalize any aliases before validation so cache keys stay consistent
-  const tz = resolveZone(zone);
-  if (!tz) {
-    return false;
-  }
-
-  // Memoized hits avoid repeated Intl constructor work and exception cost
-  if (validIanaCache.has(tz)) {
-    return validIanaCache.get(tz);
-  }
-
-  try {
-    // Rely on Intl throwing for invalid timeZone identifiers
-    // This is more portable across Node builds than Temporal alone
-    new Intl.DateTimeFormat('en-US', {timeZone: tz}).format(new Date(0));
-    validIanaCache.set(tz, true);
-    return true;
-  } catch {
-    validIanaCache.set(tz, false);
-    return false;
-  }
-}
-
-function parseDateTimeInZone(yyyymmddThhmmss, zone) {
-  // Interpret the provided local wall time in the given IANA zone
-  // and return a JS Date in UTC representing that instant.
-  const s = String(yyyymmddThhmmss);
-  // Support basic and extended forms
-  // Try extended first: YYYY-MM-DDTHH:mm:ss
-  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
-  let fields;
-  if (m) {
-    fields = {
-      year: Number(m[1]),
-      month: Number(m[2]),
-      day: Number(m[3]),
-      hour: Number(m[4]),
-      minute: Number(m[5]),
-      second: Number(m[6] || 0),
-    };
-  } else {
-    // Basic form: YYYYMMDDTHHmmss or YYYYMMDDTHHmm
-    m = s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/);
-    if (m) {
-      fields = {
-        year: Number(m[1]),
-        month: Number(m[2]),
-        day: Number(m[3]),
-        hour: Number(m[4]),
-        minute: Number(m[5]),
-        second: Number(m[6] || 0),
-      };
-    }
-  }
-
-  if (!fields) {
-    return undefined;
-  }
-
-  const tz = resolveZone(zone);
-  // Defensive: bail out early if the zone can't be resolved to a valid IANA identifier
-  if (!isValidIana(tz)) {
-    return undefined;
-  }
-
-  // Initial guess: interpret local fields as if they were UTC
-  const t = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
-
-  const getLocalParts = date => {
-    const df = getFormatter(tz);
-
-    const parts = df.formatToParts(date);
-    const out = {};
-    for (const p of parts) {
-      if (p.type === 'year') {
-        out.year = Number(p.value);
-      }
-
-      if (p.type === 'month') {
-        out.month = Number(p.value);
-      }
-
-      if (p.type === 'day') {
-        out.day = Number(p.value);
-      }
-
-      if (p.type === 'hour') {
-        out.hour = Number(p.value);
-      }
-
-      if (p.type === 'minute') {
-        out.minute = Number(p.value);
-      }
-
-      if (p.type === 'second') {
-        out.second = Number(p.value);
-      }
-    }
-
-    // Handle 24:00 edge case which some TZs may produce for midnight
-    // This seems only happen with node < 22 and only for certain zones
-    if (Object.hasOwn(out, 'hour') && out.hour === 24) {
-      normalizeMidnightParts(date, df, out);
-    }
-
-    return out;
-  };
-
-  const converged = convergeLocalInstant(t, fields, getLocalParts);
-  return attachTz(converged, zone);
-}
-
-function parseWithOffset(yyyymmddThhmmss, offset) {
-  // Offset like +hh:mm, -hh:mm, +hhmm, -hhmm, optionally prefixed by UTC/GMT
-  const s = String(yyyymmddThhmmss);
-  let m = s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/);
-  // Some feeds emit extended ISO `YYYY-MM-DD[T ]HH:mm[:ss]` strings alongside numeric offsets.
-  // Mirror parseDateTimeInZone by accepting that form too so we don't fall back to local Date semantics.
-  m ||= s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
-
-  if (!m) {
-    return undefined;
-  }
-
-  const year = Number(m[1]);
-  const month = Number(m[2]);
-  const day = Number(m[3]);
-  const hour = Number(m[4]);
-  const minute = Number(m[5]);
-  const second = Number(m[6] || 0);
-  const totalMinutes = offsetLabelToMinutes(offset);
-  if (!Number.isFinite(totalMinutes)) {
-    throw new TypeError('Invalid offset string: ' + offset);
-  }
-
-  const utcMs = Date.UTC(year, month - 1, day, hour, minute, second) - (totalMinutes * 60_000);
-  const normalizedOffset = minutesToOffset(totalMinutes);
-  // Preserve original offset metadata so downstream consumers can recover it
-  return attachTz(new Date(utcMs), normalizedOffset);
-}
-
-function utcAdd(date, amount, unit) {
-  if (!(date instanceof Date)) {
-    return undefined;
-  }
-
-  const msPer = {
-    weeks: 7 * 24 * 60 * 60 * 1000,
-    days: 24 * 60 * 60 * 1000,
-    hours: 60 * 60 * 1000,
-    minutes: 60 * 1000,
-    seconds: 1000,
-  };
-  const factor = msPer[unit];
-  if (!factor) {
-    throw new Error('Unsupported unit: ' + unit);
-  }
-
-  return new Date(date.getTime() + (amount * factor));
-}
-
-function linkAlias(arg1, arg2) {
-  // Support both linkAlias('Etc/Unknown|Etc/GMT') and linkAlias('Etc/Unknown','Etc/GMT')
-  if (arg2 === undefined) {
-    const [a, b] = String(arg1).split('|');
-    if (a && b) {
-      aliasMap.set(a, b);
-    }
-
-    return;
-  }
-
-  aliasMap.set(String(arg1), String(arg2));
-}
-
-// Public API
-module.exports = {
-  guessLocalZone,
-  getZoneNames,
-  findExactZoneMatch,
-  isValidIana,
-  parseDateTimeInZone,
-  parseWithOffset,
-  utcAdd,
-  linkAlias,
-  resolveTZID,
-  formatDateForRrule,
-  attachTz,
-  isUtcTimezone,
-};
-
-// Expose some internals for testing
-module.exports.__test__ = {
-  normalizeMidnightParts,
-  isUtcTimezone,
-};
-
-function isUtcTimezone(tz) {
-  if (!tz) {
-    return false;
-  }
-
-  const tzLower = tz.toLowerCase();
-  return tzLower === 'etc/utc' || tzLower === 'utc' || tzLower === 'etc/gmt';
-}
-
-
-/***/ }),
-
-/***/ 4294:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-/* unused reexport */ __nccwpck_require__(4219);
-
-
-/***/ }),
-
-/***/ 4219:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-var __webpack_unused_export__;
-
-
-var net = __nccwpck_require__(1808);
-var tls = __nccwpck_require__(4404);
-var http = __nccwpck_require__(3685);
-var https = __nccwpck_require__(5687);
-var events = __nccwpck_require__(2361);
-var assert = __nccwpck_require__(9491);
-var util = __nccwpck_require__(3837);
-
-
-__webpack_unused_export__ = httpOverHttp;
-__webpack_unused_export__ = httpsOverHttp;
-__webpack_unused_export__ = httpOverHttps;
-__webpack_unused_export__ = httpsOverHttps;
-
-
-function httpOverHttp(options) {
-  var agent = new TunnelingAgent(options);
-  agent.request = http.request;
-  return agent;
-}
-
-function httpsOverHttp(options) {
-  var agent = new TunnelingAgent(options);
-  agent.request = http.request;
-  agent.createSocket = createSecureSocket;
-  agent.defaultPort = 443;
-  return agent;
-}
-
-function httpOverHttps(options) {
-  var agent = new TunnelingAgent(options);
-  agent.request = https.request;
-  return agent;
-}
-
-function httpsOverHttps(options) {
-  var agent = new TunnelingAgent(options);
-  agent.request = https.request;
-  agent.createSocket = createSecureSocket;
-  agent.defaultPort = 443;
-  return agent;
-}
-
-
-function TunnelingAgent(options) {
-  var self = this;
-  self.options = options || {};
-  self.proxyOptions = self.options.proxy || {};
-  self.maxSockets = self.options.maxSockets || http.Agent.defaultMaxSockets;
-  self.requests = [];
-  self.sockets = [];
-
-  self.on('free', function onFree(socket, host, port, localAddress) {
-    var options = toOptions(host, port, localAddress);
-    for (var i = 0, len = self.requests.length; i < len; ++i) {
-      var pending = self.requests[i];
-      if (pending.host === options.host && pending.port === options.port) {
-        // Detect the request to connect same origin server,
-        // reuse the connection.
-        self.requests.splice(i, 1);
-        pending.request.onSocket(socket);
-        return;
-      }
-    }
-    socket.destroy();
-    self.removeSocket(socket);
-  });
-}
-util.inherits(TunnelingAgent, events.EventEmitter);
-
-TunnelingAgent.prototype.addRequest = function addRequest(req, host, port, localAddress) {
-  var self = this;
-  var options = mergeOptions({request: req}, self.options, toOptions(host, port, localAddress));
-
-  if (self.sockets.length >= this.maxSockets) {
-    // We are over limit so we'll add it to the queue.
-    self.requests.push(options);
-    return;
-  }
-
-  // If we are under maxSockets create a new one.
-  self.createSocket(options, function(socket) {
-    socket.on('free', onFree);
-    socket.on('close', onCloseOrRemove);
-    socket.on('agentRemove', onCloseOrRemove);
-    req.onSocket(socket);
-
-    function onFree() {
-      self.emit('free', socket, options);
-    }
-
-    function onCloseOrRemove(err) {
-      self.removeSocket(socket);
-      socket.removeListener('free', onFree);
-      socket.removeListener('close', onCloseOrRemove);
-      socket.removeListener('agentRemove', onCloseOrRemove);
-    }
-  });
-};
-
-TunnelingAgent.prototype.createSocket = function createSocket(options, cb) {
-  var self = this;
-  var placeholder = {};
-  self.sockets.push(placeholder);
-
-  var connectOptions = mergeOptions({}, self.proxyOptions, {
-    method: 'CONNECT',
-    path: options.host + ':' + options.port,
-    agent: false,
-    headers: {
-      host: options.host + ':' + options.port
-    }
-  });
-  if (options.localAddress) {
-    connectOptions.localAddress = options.localAddress;
-  }
-  if (connectOptions.proxyAuth) {
-    connectOptions.headers = connectOptions.headers || {};
-    connectOptions.headers['Proxy-Authorization'] = 'Basic ' +
-        new Buffer(connectOptions.proxyAuth).toString('base64');
-  }
-
-  debug('making CONNECT request');
-  var connectReq = self.request(connectOptions);
-  connectReq.useChunkedEncodingByDefault = false; // for v0.6
-  connectReq.once('response', onResponse); // for v0.6
-  connectReq.once('upgrade', onUpgrade);   // for v0.6
-  connectReq.once('connect', onConnect);   // for v0.7 or later
-  connectReq.once('error', onError);
-  connectReq.end();
-
-  function onResponse(res) {
-    // Very hacky. This is necessary to avoid http-parser leaks.
-    res.upgrade = true;
-  }
-
-  function onUpgrade(res, socket, head) {
-    // Hacky.
-    process.nextTick(function() {
-      onConnect(res, socket, head);
-    });
-  }
-
-  function onConnect(res, socket, head) {
-    connectReq.removeAllListeners();
-    socket.removeAllListeners();
-
-    if (res.statusCode !== 200) {
-      debug('tunneling socket could not be established, statusCode=%d',
-        res.statusCode);
-      socket.destroy();
-      var error = new Error('tunneling socket could not be established, ' +
-        'statusCode=' + res.statusCode);
-      error.code = 'ECONNRESET';
-      options.request.emit('error', error);
-      self.removeSocket(placeholder);
-      return;
-    }
-    if (head.length > 0) {
-      debug('got illegal response body from proxy');
-      socket.destroy();
-      var error = new Error('got illegal response body from proxy');
-      error.code = 'ECONNRESET';
-      options.request.emit('error', error);
-      self.removeSocket(placeholder);
-      return;
-    }
-    debug('tunneling connection has established');
-    self.sockets[self.sockets.indexOf(placeholder)] = socket;
-    return cb(socket);
-  }
-
-  function onError(cause) {
-    connectReq.removeAllListeners();
-
-    debug('tunneling socket could not be established, cause=%s\n',
-          cause.message, cause.stack);
-    var error = new Error('tunneling socket could not be established, ' +
-                          'cause=' + cause.message);
-    error.code = 'ECONNRESET';
-    options.request.emit('error', error);
-    self.removeSocket(placeholder);
-  }
-};
-
-TunnelingAgent.prototype.removeSocket = function removeSocket(socket) {
-  var pos = this.sockets.indexOf(socket)
-  if (pos === -1) {
-    return;
-  }
-  this.sockets.splice(pos, 1);
-
-  var pending = this.requests.shift();
-  if (pending) {
-    // If we have pending requests and a socket gets closed a new one
-    // needs to be created to take over in the pool for the one that closed.
-    this.createSocket(pending, function(socket) {
-      pending.request.onSocket(socket);
-    });
-  }
-};
-
-function createSecureSocket(options, cb) {
-  var self = this;
-  TunnelingAgent.prototype.createSocket.call(self, options, function(socket) {
-    var hostHeader = options.request.getHeader('host');
-    var tlsOptions = mergeOptions({}, self.options, {
-      socket: socket,
-      servername: hostHeader ? hostHeader.replace(/:.*$/, '') : options.host
-    });
-
-    // 0 is dummy port for v0.6
-    var secureSocket = tls.connect(0, tlsOptions);
-    self.sockets[self.sockets.indexOf(socket)] = secureSocket;
-    cb(secureSocket);
-  });
-}
-
-
-function toOptions(host, port, localAddress) {
-  if (typeof host === 'string') { // since v0.10
-    return {
-      host: host,
-      port: port,
-      localAddress: localAddress
-    };
-  }
-  return host; // for v0.11 or later
-}
-
-function mergeOptions(target) {
-  for (var i = 1, len = arguments.length; i < len; ++i) {
-    var overrides = arguments[i];
-    if (typeof overrides === 'object') {
-      var keys = Object.keys(overrides);
-      for (var j = 0, keyLen = keys.length; j < keyLen; ++j) {
-        var k = keys[j];
-        if (overrides[k] !== undefined) {
-          target[k] = overrides[k];
-        }
-      }
-    }
-  }
-  return target;
-}
-
-
-var debug;
-if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
-  debug = function() {
-    var args = Array.prototype.slice.call(arguments);
-    if (typeof args[0] === 'string') {
-      args[0] = 'TUNNEL: ' + args[0];
-    } else {
-      args.unshift('TUNNEL:');
-    }
-    console.error.apply(console, args);
-  }
-} else {
-  debug = function() {};
-}
-__webpack_unused_export__ = debug; // for test
-
-
-/***/ }),
-
 /***/ 9491:
 /***/ ((module) => {
 
@@ -30015,7 +30015,7 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:events"
 
 /***/ }),
 
-/***/ 9521:
+/***/ 7561:
 /***/ ((module) => {
 
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
@@ -36271,8 +36271,8 @@ class DecodedURL extends URL {
 //# sourceMappingURL=proxy.js.map
 // EXTERNAL MODULE: ./node_modules/tunnel/index.js
 var node_modules_tunnel = __nccwpck_require__(4294);
-// EXTERNAL MODULE: ./node_modules/@actions/core/node_modules/undici/index.js
-var undici = __nccwpck_require__(7387);
+// EXTERNAL MODULE: ./node_modules/undici/index.js
+var undici = __nccwpck_require__(1773);
 ;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
 /* eslint-disable @typescript-eslint/no-explicit-any */
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
