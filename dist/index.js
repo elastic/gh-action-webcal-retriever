@@ -34,13 +34,90 @@ const tzUtil = __nccwpck_require__(5108);
  * @param {Date} dateValue - Date object with optional dateOnly property
  * @returns {string} Date key in YYYY-MM-DD format
  */
-const getDateKey = function (dateValue) {
+function getDateKey(dateValue) {
   if (dateValue.dateOnly) {
     return `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
   }
 
   return dateValue.toISOString().slice(0, 10);
-};
+}
+
+/**
+ * Clone a Date object and preserve custom metadata (tz, dateOnly).
+ * @param {Date} source - Source Date object with optional tz and dateOnly properties
+ * @param {Date|number} newTime - New time value (defaults to source)
+ * @returns {Date} Cloned Date with preserved metadata
+ */
+function cloneDateWithMeta(source, newTime = source) {
+  const cloned = new Date(newTime);
+
+  if (source?.tz) {
+    cloned.tz = source.tz;
+  }
+
+  if (source?.dateOnly) {
+    cloned.dateOnly = source.dateOnly;
+  }
+
+  return cloned;
+}
+
+/**
+ * Extract string value from DURATION (handles {params, val} shape).
+ * @param {string|object} duration - Duration value (string or object with val property)
+ * @returns {string} Duration string
+ */
+function getDurationString(duration) {
+  if (typeof duration === 'object' && duration?.val) {
+    return String(duration.val);
+  }
+
+  return duration ? String(duration) : '';
+}
+
+/**
+ * Store a recurrence override with dual-key strategy.
+ * Uses both date-only (YYYY-MM-DD) and full ISO keys for DATE-TIME entries.
+ * Implements RFC 5545 SEQUENCE logic: newer versions (higher SEQUENCE) replace older ones.
+ * @param {Object} recurrences - Recurrences object to store in
+ * @param {Date} recurrenceId - RECURRENCE-ID date value
+ * @param {Object} recurrenceObject - Recurrence override data
+ */
+function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
+  if (typeof recurrenceId.toISOString !== 'function') {
+    console.warn(`[node-ical] Invalid recurrenceid (no toISOString): ${recurrenceId}`);
+    return;
+  }
+
+  const dateKey = getDateKey(recurrenceId);
+  const isoKey = recurrenceId.dateOnly === true ? null : recurrenceId.toISOString();
+
+  // Check for existing override: prefer ISO key if available (more precise), fallback to date key
+  // This handles both DATE-TIME (precise time) and DATE (date-only) recurrence IDs
+  const existing = (isoKey && recurrences[isoKey]) || recurrences[dateKey];
+
+  // Check SEQUENCE to determine which version to keep (RFC 5545)
+  // Normalize SEQUENCE to number, default to 0 if invalid/missing
+  if (existing !== undefined) {
+    const existingSeq = Number.isFinite(existing.sequence) ? existing.sequence : 0;
+    const newSeq = Number.isFinite(recurrenceObject.sequence) ? recurrenceObject.sequence : 0;
+
+    if (newSeq < existingSeq) {
+      // Older version - ignore it
+      const key = isoKey || dateKey;
+      console.warn(`[node-ical] Ignoring older RECURRENCE-ID override (SEQUENCE ${newSeq} < ${existingSeq}) for ${key}`);
+      return;
+    }
+    // If newSeq >= existingSeq, continue and overwrite (newer or same version)
+  }
+
+  recurrences[dateKey] = recurrenceObject;
+
+  // Also store with full ISO key for DATE-TIME entries (enables precise matching)
+  if (isoKey) {
+    recurrences[isoKey] = recurrenceObject;
+  }
+}
 
 /**
  * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
@@ -495,22 +572,27 @@ const freebusyParameter = function (name) {
   };
 };
 
+// Default batch size for async parsing to prevent event loop blocking
+const PARSE_BATCH_SIZE = 2000;
+
 module.exports = {
   objectHandlers: {
     BEGIN(component, parameters, curr, stack) {
       stack.push(curr);
 
-      return {type: component, params: parameters};
+      return {type: component};
     },
     END(value, parameters, curr, stack) {
       // Original end function
       const originalEnd = function (component, parameters_, curr, stack) {
         // Prevents the need to search the root of the tree for the VCALENDAR object
         if (component === 'VCALENDAR') {
-          // Scan all high level object in curr and drop all strings
+          // Preserve VCALENDAR string properties in a separate 'vcalendar' object
+          // for easy access to calendar metadata
+          // (X-WR-CALNAME, X-WR-CALDESC, X-WR-TIMEZONE, METHOD, etc.)
           let key;
           let object;
-          const highLevel = {};
+          const vcalendarProps = {};
 
           for (key in curr) {
             if (!Object.hasOwn(curr, key)) {
@@ -519,13 +601,14 @@ module.exports = {
 
             object = curr[key];
             if (typeof object === 'string') {
-              highLevel[key] = object;
+              vcalendarProps[key] = object;
               delete curr[key];
             }
           }
 
-          if (highLevel.type) {
-            curr[highLevel.type.toLowerCase()] = highLevel;
+          // Store VCALENDAR properties in a dedicated object for easy access
+          if (Object.keys(vcalendarProps).length > 0) {
+            curr.vcalendar = vcalendarProps;
           }
 
           return curr;
@@ -534,33 +617,6 @@ module.exports = {
         const par = stack.pop();
 
         if (!curr.end) { // RFC5545, 3.6.1
-          // Helper: clone a Date and preserve custom metadata (tz, dateOnly)
-          const cloneDateWithMeta = (source, newTime = source) => {
-            const cloned = new Date(newTime);
-            if (source?.tz) {
-              cloned.tz = source.tz;
-            }
-
-            if (source?.dateOnly) {
-              cloned.dateOnly = source.dateOnly;
-            }
-
-            return cloned;
-          };
-
-          // Helper: extract string value from DURATION (handles {params, val} shape)
-          const getDurationString = duration => {
-            if (typeof duration === 'object' && duration?.val) {
-              return String(duration.val);
-            }
-
-            if (duration) {
-              return String(duration);
-            }
-
-            return '';
-          };
-
           // Calculate end date based on DURATION or default rules
           if (curr.duration === undefined) {
             // No DURATION: default end is same time (date-time) or +1 day (date-only)
@@ -612,15 +668,20 @@ module.exports = {
             // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
             // to the entry (SEQUENCE).
 
-            // TODO: Look into proper sequence logic.
+            // Check SEQUENCE to determine which version to keep (RFC 5545)
+            // Normalize SEQUENCE to number, default to 0 if invalid/missing
+            const existingSeq = Number.isFinite(par[curr.uid].sequence) ? par[curr.uid].sequence : 0;
+            const newSeq = Number.isFinite(curr.sequence) ? curr.sequence : 0;
 
-            // If we have the same UID as an existing record, and it *isn't* a specific recurrence ID,
-            // not quite sure what the correct behaviour should be.  For now, just take the new information
-            // and merge it with the old record by overwriting only the fields that appear in the new record.
-            let key;
-            for (key in curr) {
-              if (key !== null) {
-                par[curr.uid][key] = curr[key];
+            if (newSeq < existingSeq) {
+              // Older version - ignore it entirely
+              console.warn(`[node-ical] Ignoring older event version (SEQUENCE ${newSeq} < ${existingSeq}) for UID ${curr.uid}`);
+            } else {
+              // Newer or same version - merge fields from the new record into the existing one
+              for (const key in curr) {
+                if (key !== null) {
+                  par[curr.uid][key] = curr[key];
+                }
               }
             }
           }
@@ -636,8 +697,6 @@ module.exports = {
           // fields in the parent record.
 
           if (curr.recurrenceid !== undefined) {
-            // TODO:  Is there ever a case where we have to worry about overwriting an existing entry here?
-
             // Create a copy of the current object to save in our recurrences array.  (We *could* just do par = curr,
             // except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we
             // would end up with a shared reference that would cause us to overwrite *both* records at the point
@@ -659,27 +718,8 @@ module.exports = {
               par[curr.uid].recurrences = {};
             }
 
-            // Store the recurrence override with dual-key strategy (same as EXDATE):
-            // - Date-only key (YYYY-MM-DD) for simple lookups
-            // - Full ISO string for precise matching when multiple instances occur per day
-            if (typeof curr.recurrenceid.toISOString === 'function') {
-              const isoString = curr.recurrenceid.toISOString();
-
-              // For date-only events, use local date components to avoid UTC timezone shift
-              const dateKey = getDateKey(curr.recurrenceid);
-
-              // Primary key: date-only for backward compatibility
-              par[curr.uid].recurrences[dateKey] = recurrenceObject;
-
-              // Additional key: full timestamp for events recurring multiple times per day
-              // Note: dateOnly is already set by dateParameter()
-              if (!curr.recurrenceid.dateOnly) {
-                par[curr.uid].recurrences[isoString] = recurrenceObject;
-              }
-            } else {
-              console.warn(`[node-ical] No toISOString function in recurrenceid: ${curr.recurrenceid}`);
-              // Skip malformed recurrence-id entries to avoid storing invalid keys
-            }
+            // Store the recurrence override with dual-key strategy (same as EXDATE)
+            storeRecurrenceOverride(par[curr.uid].recurrences, curr.recurrenceid, recurrenceObject);
           }
 
           // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
@@ -1002,8 +1042,16 @@ module.exports = {
 
       throw new Error('duplicate DTEND encountered, line=' + line);
     },
+    DUE(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.due === undefined) {
+        return dateParameter('due')(value, parameters, curr, stack);
+      }
+
+      throw new Error('duplicate DUE encountered, line=' + line);
+    },
     EXDATE: exdateParameter('exdate'),
-    ' CLASS': storeParameter('class'), // Should there be a space in this property?
+    CLASS: storeParameter('class'),
     TRANSP: storeParameter('transparency'),
     GEO: geoParameter('geo'),
     'PERCENT-COMPLETE': storeParameter('completion'),
@@ -1014,6 +1062,10 @@ module.exports = {
     CREATED: dateParameter('created'),
     'LAST-MODIFIED': dateParameter('lastmodified'),
     'RECURRENCE-ID': recurrenceParameter('recurrenceid'),
+    SEQUENCE(value, parameters, curr) {
+      curr.sequence = parseValue(value);
+      return curr;
+    },
     RRULE(value, parameters, curr, stack, line) {
       curr.rrule = line;
       return curr;
@@ -1035,83 +1087,130 @@ module.exports = {
     return storeParameter(name.toLowerCase())(value, parameters, ctx);
   },
 
-  parseLines(lines, limit, ctx, stack, lastIndex, cb) {
-    if (!cb && typeof ctx === 'function') {
-      cb = ctx;
-      ctx = undefined;
-    }
-
+  /**
+   * Parse iCalendar lines into a structured object.
+   * Supports both sync and async (batched) modes.
+   *
+   * @param {string[]} lines - Array of iCalendar lines
+   * @param {number} [batchSize=0] - Lines per batch (0=sync mode, >0=async batching)
+   * @param {Object} [ctx] - Context object (internal, created if not provided)
+   * @param {Array} [stack] - Parser stack for nested components (internal)
+   * @param {number} [startIndex=0] - Current position in lines array (internal)
+   * @param {Function} [cb] - Callback for async mode: cb(error, data)
+   * @returns {Object|undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
+   *
+   * @example
+   * // Sync mode (no batching)
+   * const data = parseLines(lines);
+   *
+   * @example
+   * // Async mode (with batching)
+   * parseLines(lines, 2000, undefined, undefined, 0, (err, data) => { ... });
+   */
+  parseLines(lines, batchSize = 0, ctx, stack, startIndex = 0, cb) {
     ctx ||= {};
     stack ||= [];
 
-    let limitCounter = 0;
+    let parseError = null;
+    let parseResult = null;
 
-    let i = lastIndex || 0;
-    for (let ii = lines.length; i < ii; i++) {
-      let l = lines[i];
-      // Unfold : RFC#3.1
-      while (lines[i + 1] && /[ \t]/.test(lines[i + 1][0])) {
-        l += lines[i + 1].slice(1);
-        i++;
+    try {
+      const endIndex = batchSize > 0 ? Math.min(startIndex + batchSize, lines.length) : lines.length;
+
+      for (let i = startIndex; i < endIndex; i++) {
+        let l = lines[i];
+        // Unfold : RFC#3.1
+        while (lines[i + 1] && /[ \t]/.test(lines[i + 1][0])) {
+          l += lines[i + 1].slice(1);
+          i++;
+        }
+
+        // Remove any double quotes in any tzid statement // except around (utc+hh:mm
+        if (l.includes('TZID=') && !l.includes('"(')) {
+          l = l.replaceAll('"', '');
+        }
+
+        const exp = /^([\w\d-]+)((?:;[\w\d-]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/;
+        let kv = l.match(exp);
+
+        if (kv === null) {
+          // Invalid line - must have k&v
+          continue;
+        }
+
+        kv = kv.slice(1);
+
+        const value = kv.at(-1);
+        const name = kv[0];
+        const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
+
+        ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
       }
 
-      // Remove any double quotes in any tzid statement// except around (utc+hh:mm
-      if (l.includes('TZID=') && !l.includes('"(')) {
-        l = l.replaceAll('"', '');
+      // Check if more batches needed
+      if (batchSize > 0 && endIndex < lines.length) {
+        // Async mode: schedule next batch
+        setImmediate(() => {
+          this.parseLines(lines, batchSize, ctx, stack, endIndex, cb);
+        });
+        return; // Exit early, callback will be invoked by recursive call
       }
 
-      const exp = /^([\w\d-]+)((?:;[\w\d-]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/;
-      let kv = l.match(exp);
-
-      if (kv === null) {
-        // Invalid line - must have k&v
-        continue;
-      }
-
-      kv = kv.slice(1);
-
-      const value = kv.at(-1);
-      const name = kv[0];
-      const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
-
-      ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
-      if (++limitCounter > limit) {
-        break;
-      }
-    }
-
-    if (i >= lines.length) {
-      // Type and params are added to the list of items, get rid of them.
+      // Finished parsing - prepare result
       delete ctx.type;
       delete ctx.params;
+      parseResult = ctx;
+    } catch (error) {
+      parseError = error;
     }
 
+    // Call callback outside try-catch to prevent double-calling if cb throws
     if (cb) {
-      if (i < lines.length) {
-        setImmediate(() => {
-          this.parseLines(lines, limit, ctx, stack, i + 1, cb);
-        });
+      if (parseError) {
+        cb(parseError, {});
       } else {
-        setImmediate(() => {
-          cb(null, ctx);
-        });
+        cb(null, parseResult);
       }
+    } else if (parseError) {
+      throw parseError;
     } else {
-      return ctx;
+      return parseResult;
     }
   },
 
+  /**
+   * Parse an iCalendar string.
+   *
+   * @param {string} string - Raw iCalendar data (ICS format)
+   * @param {Function} [cb] - Optional callback for async mode: cb(error, data)
+   * @returns {Object|undefined} Parsed calendar data (sync) or undefined (async)
+   *
+   * @example
+   * // Synchronous parsing
+   * const data = ical.parseICS(icsString);
+   *
+   * @example
+   * // Asynchronous parsing with callback
+   * ical.parseICS(icsString, (err, data) => {
+   *   if (err) console.error(err);
+   *   else console.log(data);
+   * });
+   *
+   * @todo for v1.0: Split into separate parseICS() (sync) and parseICSAsync() (Promise-based) functions.
+   * The current dual-mode API (sync if no callback, async if callback) is an anti-pattern that
+   * makes the function behavior unpredictable and harder to type correctly in TypeScript.
+   */
   parseICS(string, cb) {
     const lines = string.split(/\r?\n/);
-    let ctx;
 
     if (cb) {
-      // Asynchronous execution
-      this.parseLines(lines, 2000, cb);
+      // Async mode: use batching to prevent event loop blocking
+      setImmediate(() => {
+        this.parseLines(lines, PARSE_BATCH_SIZE, undefined, undefined, 0, cb);
+      });
     } else {
-      // Synchronous execution
-      ctx = this.parseLines(lines, lines.length);
-      return ctx;
+      // Sync mode: parse all at once (no batching)
+      return this.parseLines(lines);
     }
   },
 };
@@ -1190,12 +1289,27 @@ function promiseCallback(fn, cb) {
     return promise;
   }
 
+  // Store result/error outside .then/.catch to avoid double-callback
+  // if the user's callback throws (the thrown error would be caught by
+  // the promise chain and trigger .catch, calling cb a second time)
+  let callbackError = null;
+  let callbackResult = null;
+  let hasResult = false;
+
   promise
     .then(returnValue => {
-      cb(null, returnValue);
+      callbackResult = returnValue;
+      hasResult = true;
     })
     .catch(error => {
-      cb(error, null);
+      callbackError = error;
+    })
+    .finally(() => {
+      if (callbackError) {
+        cb(callbackError, null);
+      } else if (hasResult) {
+        cb(null, callbackResult);
+      }
     });
 }
 
