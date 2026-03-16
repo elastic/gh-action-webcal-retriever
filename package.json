@@ -8,7 +8,7 @@
   "dependencies": {
     "@actions/core": "^3.0.0",
     "@actions/github": "9.0.0",
-    "date-and-time": "^4.2.0",
+    "date-and-time": "^4.3.0",
     "node-ical": "^0.25.4"
   },
   "devDependencies": {
