@@ -1599,65 +1599,124 @@ function processNonRecurringEvent(event, options) {
 }
 
 /**
- * Process a recurring event instance
- * @param {Date} date
- * @param {object} event
- * @param {object} options
+ * Check if a date is excluded by EXDATE rules.
+ * @param {Date} date - The instance date to check
+ * @param {object} event - The calendar event
+ * @param {string} dateKey - Pre-computed date key
+ * @param {boolean} isFullDay - Whether the event is a full-day event
+ * @returns {boolean} True if the date is excluded
+ */
+function isExcludedByExdate(date, event, dateKey, isFullDay) {
+  if (!event.exdate) {
+    return false;
+  }
+
+  if (isFullDay) {
+    // Full-day: compare by calendar date using timezone-aware formatting
+    // (e.g., Exchange/O365 stores EXDATE as DATE-TIME with timezone, so we need
+    // to extract the calendar date in the EXDATE's timezone, not host-local time)
+    // Use Set to deduplicate — exdateParameter stores the same Date under both
+    // a date-key and an ISO-string key, so Object.values() can yield duplicates.
+    for (const exdateValue of new Set(Object.values(event.exdate))) {
+      if (exdateValue instanceof Date && getDateKey(exdateValue) === dateKey) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // For timed events:
+  //   1. Prefer an exact ISO-string match — a DATE-TIME EXDATE is stored under
+  //      both dateKey AND isoKey, so only checking isoKey ensures we don't
+  //      accidentally exclude the 09:00 instance when only 14:00 is excluded.
+  //   2. Fall back to dateKey only when the EXDATE itself is DATE-only (dateOnly
+  //      is true), which by RFC 5545 intentionally excludes every instance on
+  //      that calendar day regardless of time.
+  return Boolean(event.exdate[date.toISOString()] || event.exdate[dateKey]?.dateOnly);
+}
+
+/**
+ * Validate that from/to are proper Dates in the right order.
+ * @param {Date} from
+ * @param {Date} to
+ */
+function validateDateRange(from, to) {
+  if (!(from instanceof Date) || Number.isNaN(from.getTime())) {
+    throw new TypeError('options.from must be a valid Date object');
+  }
+
+  if (!(to instanceof Date) || Number.isNaN(to.getTime())) {
+    throw new TypeError('options.to must be a valid Date object');
+  }
+
+  if (from > to) {
+    throw new RangeError('options.from must be before or equal to options.to');
+  }
+}
+
+/**
+ * Compute the effective RRULE search window from the user-facing range.
+ * For full-day events the upper bound is pushed to end-of-day so RRULE doesn't
+ * skip the last day due to timezone offsets.
+ * For expandOngoing mode the lower bound is moved back by the event duration.
+ * @param {Date} from
+ * @param {Date} to
+ * @param {boolean} isFullDay
+ * @param {boolean} expandOngoing
  * @param {number} baseDurationMs
+ * @returns {{searchFrom: Date, searchTo: Date}}
+ */
+function adjustSearchRange(from, to, isFullDay, expandOngoing, baseDurationMs) {
+  const isMidnight = to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0;
+  const searchTo = (isFullDay && isMidnight)
+    ? new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999)
+    : to;
+  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
+  return {searchFrom, searchTo};
+}
+
+/**
+ * Build a single recurring event instance for an RRULE-generated date.
+ * Returns null when the date is excluded by EXDATE.
+ * @param {Date} date - RRULE-generated Date
+ * @param {object} event - The base VEVENT
+ * @param {boolean} isFullDay - Pre-computed full-day flag
+ * @param {number} baseDurationMs - Pre-computed base duration
+ * @param {{excludeExdates: boolean, includeOverrides: boolean}} options
  * @returns {object|null} Event instance or null if excluded
  */
-function processRecurringInstance(date, event, options, baseDurationMs) {
+function buildRecurringInstance(date, event, isFullDay, baseDurationMs, options) {
   const {excludeExdates, includeOverrides} = options;
-  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
-
-  // Generate date key for lookups
   const dateKey = generateDateKey(date, isFullDay);
 
-  // Check EXDATE exclusions
-  if (excludeExdates && event.exdate) {
-    if (isFullDay) {
-      // Full-day: compare by calendar date using timezone-aware formatting
-      // (e.g., Exchange/O365 stores EXDATE as DATE-TIME with timezone, so we need
-      // to extract the calendar date in the EXDATE's timezone, not host-local time)
-      for (const exdateValue of Object.values(event.exdate)) {
-        if (!(exdateValue instanceof Date)) {
-          continue;
-        }
-
-        if (getDateKey(exdateValue) === dateKey) {
-          return null;
-        }
-      }
-    } else if (event.exdate[dateKey] || event.exdate[date.toISOString()]) {
-      return null;
-    }
+  if (excludeExdates && isExcludedByExdate(date, event, dateKey, isFullDay)) {
+    return null;
   }
 
-  // Check for RECURRENCE-ID override
-  let instanceEvent = event;
-  let isOverride = false;
+  // For timed events use only the precise ISO key: storeRecurrenceOverride (ical.js)
+  // stores every DATE-TIME RECURRENCE-ID under both the ISO key and the date-only
+  // key, so a miss on the ISO key unambiguously means "no override for this
+  // specific instance".  Falling back to the date-only key would incorrectly apply
+  // a different occurrence's override when two instances share the same calendar
+  // date (e.g. BYHOUR=9,15).  Full-day events have no ISO key and use dateKey only.
+  const isoKey = isFullDay ? null : date.toISOString();
+  const overrideEvent = includeOverrides
+    && (isoKey ? event.recurrences?.[isoKey] : event.recurrences?.[dateKey]);
+  const isOverride = Boolean(overrideEvent);
+  const instanceEvent = isOverride ? overrideEvent : event;
 
-  if (includeOverrides && event.recurrences && event.recurrences[dateKey]) {
-    instanceEvent = event.recurrences[dateKey];
-    isOverride = true;
-  }
+  // Override's own DTSTART takes priority over the RRULE-generated date
+  let start = (isOverride && instanceEvent.start)
+    ? (instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start))
+    : date;
 
-  // Calculate start time for this instance
-  let start = date;
-
-  // If override has its own DTSTART, use that instead of the RRULE-generated date
-  if (isOverride && instanceEvent.start) {
-    start = instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start);
-  }
-
-  // For full-day events, extract UTC components to avoid DST issues
+  // Normalise full-day dates to local calendar midnight to avoid DST shifts
   if (isFullDay) {
     start = createLocalDateFromUTC(start);
   }
 
-  // For recurring events, use override duration when available; otherwise use base duration
   const end = calculateEndTime(start, instanceEvent, isFullDay, baseDurationMs);
-
   const instance = {
     start,
     end,
@@ -1668,7 +1727,6 @@ function processRecurringInstance(date, event, options, baseDurationMs) {
     event: instanceEvent,
   };
 
-  // Preserve timezone metadata
   copyDateMeta(instance.start, isOverride ? instanceEvent.start : event.start);
   copyDateMeta(instance.end, instanceEvent.end || event.end);
 
@@ -1725,42 +1783,21 @@ function expandRecurringEvent(event, options) {
     expandOngoing = false,
   } = options;
 
-  // Input validation
-  if (!(from instanceof Date) || Number.isNaN(from.getTime())) {
-    throw new TypeError('options.from must be a valid Date object');
-  }
-
-  if (!(to instanceof Date) || Number.isNaN(to.getTime())) {
-    throw new TypeError('options.to must be a valid Date object');
-  }
-
-  if (from > to) {
-    throw new RangeError('options.from must be before or equal to options.to');
-  }
+  validateDateRange(from, to);
 
   // Handle non-recurring events
   if (!event.rrule) {
     return processNonRecurringEvent(event, {from, to, expandOngoing});
   }
 
-  // Handle recurring events
   const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
   const baseDurationMs = getEventDurationMs(event, isFullDay);
-
-  // For full-day events, adjust 'to' to end of day to ensure RRULE includes the full day
-  // in all timezones (otherwise timezone offset can truncate the last day)
-  let searchTo = to;
-  if (isFullDay && to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0) {
-    searchTo = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999);
-  }
-
-  // For expandOngoing, look back by the event duration to capture ongoing instances
-  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
+  const {searchFrom, searchTo} = adjustSearchRange(from, to, isFullDay, expandOngoing, baseDurationMs);
   const dates = event.rrule.between(searchFrom, searchTo, true);
   const instances = [];
 
   for (const date of dates) {
-    const instance = processRecurringInstance(date, event, {excludeExdates, includeOverrides}, baseDurationMs);
+    const instance = buildRecurringInstance(date, event, isFullDay, baseDurationMs, {excludeExdates, includeOverrides});
     if (instance && isInstanceInRange(instance, from, to, expandOngoing)) {
       instances.push(instance);
     }
@@ -30159,10 +30196,58 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
-  RRuleTemporal: () => RRuleTemporal
+  RRuleTemporal: () => RRuleTemporal,
+  allowedFreq: () => allowedFreq,
+  allowedWeekdays: () => allowedWeekdays,
+  weekdayToIsoDay: () => weekdayToIsoDay
 });
 module.exports = __toCommonJS(index_exports);
 var import_polyfill = __nccwpck_require__(1763);
+var allowedFreq = ["YEARLY", "MONTHLY", "WEEKLY", "DAILY", "HOURLY", "MINUTELY", "SECONDLY"];
+var allowedWeekdays = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+var weekdayToIsoDay = {
+  MO: 1,
+  TU: 2,
+  WE: 3,
+  TH: 4,
+  FR: 5,
+  SA: 6,
+  SU: 7
+};
+var allowedFreqSet = new Set(allowedFreq);
+var allowedWeekdaysSet = new Set(allowedWeekdays);
+var byDayTokenRegex = new RegExp(`^([+-]?\\d{1,2})?(${allowedWeekdays.join("|")})$`);
+var byDayWeekdaySuffixRegex = new RegExp(`(${allowedWeekdays.join("|")})$`);
+var MS_PER_SECOND = 1e3;
+var MS_PER_MINUTE = 60 * MS_PER_SECOND;
+var MS_PER_HOUR = 60 * MS_PER_MINUTE;
+var MS_PER_DAY = 24 * MS_PER_HOUR;
+var MS_PER_WEEK = 7 * MS_PER_DAY;
+var GREGORIAN_MONTH_LENGTHS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+var GREGORIAN_WEEKDAY_OFFSETS = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+var NS_PER_MILLISECOND = BigInt(1e6);
+var NS_PER_SECOND = BigInt(1e9);
+var NS_PER_MINUTE = BigInt(60) * NS_PER_SECOND;
+var NS_PER_HOUR = BigInt(60) * NS_PER_MINUTE;
+var NS_PER_DAY = BigInt(24) * NS_PER_HOUR;
+var NS_PER_WEEK = BigInt(7) * NS_PER_DAY;
+function addIsoDays(dayOfWeek, deltaDays) {
+  return (dayOfWeek - 1 + deltaDays % 7 + 7) % 7 + 1;
+}
+function extractWeekdayToken(token) {
+  const m = token.toUpperCase().match(byDayWeekdaySuffixRegex);
+  const weekday = m == null ? void 0 : m[1];
+  if (!weekday || !allowedWeekdaysSet.has(weekday)) return null;
+  return weekday;
+}
+function parseByDayToken(token) {
+  const m = token.toUpperCase().match(byDayTokenRegex);
+  if (!m) return null;
+  const ord = m[1] ? parseInt(m[1], 10) : 0;
+  const weekday = m[2];
+  if (!weekday || !allowedWeekdaysSet.has(weekday)) return null;
+  return { ord, weekday };
+}
 function isIcsOpts(opts) {
   return typeof opts.rruleString === "string";
 }
@@ -30336,7 +30421,7 @@ function parseRRuleString(input, targetTimezone, dtstart, strict = false) {
         opts.bySecond = parseNumberArray(val, true);
         break;
       case "BYDAY":
-        opts.byDay = val.split(",");
+        opts.byDay = val.split(",").map((token) => token.toUpperCase());
         break;
       case "BYMONTH":
         opts.byMonth = parseByMonthArray(val);
@@ -30354,7 +30439,7 @@ function parseRRuleString(input, targetTimezone, dtstart, strict = false) {
         opts.bySetPos = parseNumberArray(val);
         break;
       case "WKST":
-        opts.wkst = val;
+        opts.wkst = val == null ? void 0 : val.toUpperCase();
         break;
     }
   }
@@ -30375,7 +30460,7 @@ var _RRuleTemporal = class _RRuleTemporal {
     return import_polyfill.Temporal.ZonedDateTime.from(zdt.toString());
   }
   constructor(params) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     let manual;
     if (isIcsOpts(params)) {
       const parsed = parseRRuleString(params.rruleString, params.tzid, params.dtstart, (_a = params.strict) != null ? _a : false);
@@ -30416,6 +30501,32 @@ var _RRuleTemporal = class _RRuleTemporal {
     this.opts = this.sanitizeOpts(manual);
     this.maxIterations = (_g = manual.maxIterations) != null ? _g : 1e4;
     this.includeDtstart = (_h = manual.includeDtstart) != null ? _h : false;
+    this.parsedByDayTokens = this.buildParsedByDayTokens(this.opts.byDay);
+    this.simpleByDayIsoDays = this.buildByDayIsoDays(this.parsedByDayTokens, false);
+    this.allByDayIsoDays = this.buildByDayIsoDays(this.parsedByDayTokens, true);
+    this.hasOrdinalByDay = (_j = (_i = this.parsedByDayTokens) == null ? void 0 : _i.some((token) => token.ord !== 0)) != null ? _j : false;
+    this.canUseEpochMillisecondsPrecisionFlag = this.originalDtstart.microsecond === 0 && this.originalDtstart.nanosecond === 0 && (!this.opts.until || this.opts.until.microsecond === 0 && this.opts.until.nanosecond === 0);
+    this.timeSlotOffsetsMs = this.buildTimeSlotOffsetsMs();
+    this.numericByMonths = (_k = this.opts.byMonth) == null ? void 0 : _k.filter((value) => typeof value === "number");
+  }
+  buildParsedByDayTokens(byDay) {
+    if (!(byDay == null ? void 0 : byDay.length)) return void 0;
+    const tokens = byDay.map((tok) => {
+      const parsed = parseByDayToken(tok);
+      if (!parsed) return null;
+      return {
+        ord: parsed.ord,
+        weekday: parsed.weekday,
+        isoDay: weekdayToIsoDay[parsed.weekday]
+      };
+    }).filter((token) => token !== null);
+    return tokens.length > 0 ? tokens : void 0;
+  }
+  buildByDayIsoDays(tokens, includeOrdinals) {
+    if (!(tokens == null ? void 0 : tokens.length)) return void 0;
+    const isoDays = tokens.filter((token) => includeOrdinals || token.ord === 0).map((token) => token.isoDay);
+    if (!isoDays.length) return void 0;
+    return [...new Set(isoDays)].sort((a, b) => a - b);
   }
   sanitizeNumericArray(arr, min, max, allowZero = false, sort = false) {
     if (!arr) return void 0;
@@ -30424,22 +30535,20 @@ var _RRuleTemporal = class _RRuleTemporal {
     return sort ? sanitized.sort((a, b) => a - b) : sanitized;
   }
   sanitizeByDay(byDay) {
-    const validDay = /^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/;
-    const days = (byDay != null ? byDay : []).filter((day) => day && typeof day === "string");
+    const days = (byDay != null ? byDay : []).filter((day) => Boolean(day) && typeof day === "string");
+    const normalized = [];
     for (const day of days) {
-      const match = day.match(validDay);
-      if (!match) {
+      const token = day.toUpperCase();
+      const parsed = parseByDayToken(token);
+      if (!parsed) {
         throw new Error(`Invalid BYDAY value: ${day}`);
       }
-      const ord = match[1];
-      if (ord) {
-        const ordInt = parseInt(ord, 10);
-        if (ordInt === 0) {
-          throw new Error(`Invalid BYDAY value: ${day}`);
-        }
+      if (parsed.ord === 0 && /^[+-]?\d/.test(token)) {
+        throw new Error(`Invalid BYDAY value: ${day}`);
       }
+      normalized.push(token);
     }
-    return days.length > 0 ? days : void 0;
+    return normalized.length > 0 ? normalized : void 0;
   }
   enforceStrictRfc(opts) {
     var _a;
@@ -30470,7 +30579,17 @@ var _RRuleTemporal = class _RRuleTemporal {
   }
   sanitizeOpts(opts) {
     var _a;
+    if (!allowedFreqSet.has(opts.freq)) {
+      throw new Error(`Invalid FREQ value: ${opts.freq}`);
+    }
     opts.byDay = this.sanitizeByDay(opts.byDay);
+    if (opts.wkst) {
+      const wkst = opts.wkst.toUpperCase();
+      if (!allowedWeekdaysSet.has(wkst)) {
+        throw new Error(`Invalid WKST value: ${opts.wkst}`);
+      }
+      opts.wkst = wkst;
+    }
     if (opts.byMonth) {
       const numeric = opts.byMonth.filter((v) => typeof v === "number");
       const stringy = opts.byMonth.filter((v) => typeof v === "string");
@@ -30529,9 +30648,21 @@ var _RRuleTemporal = class _RRuleTemporal {
    */
   expandByTime(base) {
     var _a, _b, _c;
+    if (!this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond) {
+      return [base];
+    }
     const hours = (_a = this.opts.byHour) != null ? _a : [base.hour];
     const minutes = (_b = this.opts.byMinute) != null ? _b : [base.minute];
     const seconds = (_c = this.opts.bySecond) != null ? _c : [base.second];
+    if (hours.length === 1 && minutes.length === 1 && seconds.length === 1) {
+      const hour = hours[0];
+      const minute = minutes[0];
+      const second = seconds[0];
+      if (hour === base.hour && minute === base.minute && second === base.second) {
+        return [base];
+      }
+      return [base.with({ hour, minute, second })];
+    }
     const out = [];
     for (const h of hours) {
       for (const m of minutes) {
@@ -30685,11 +30816,8 @@ var _RRuleTemporal = class _RRuleTemporal {
             weekStart = firstThursday.subtract({ days: 3 }).add({ weeks: lastWeek + targetWeek });
           }
           if ((_b = this.opts.byDay) == null ? void 0 : _b.length) {
-            const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-            const targetDays = this.opts.byDay.map((tok) => {
-              var _a2;
-              return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-            }).filter(Boolean).map((day) => dayMap[day]).filter(Boolean);
+            const dayMap = weekdayToIsoDay;
+            const targetDays = this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null).map((day) => dayMap[day]).filter(Boolean);
             if (targetDays.length) {
               const candidates = targetDays.map((dayOfWeek) => {
                 const delta = (dayOfWeek - weekStart.dayOfWeek + 7) % 7;
@@ -30712,7 +30840,7 @@ var _RRuleTemporal = class _RRuleTemporal {
       }
     }
     if (((_c = this.opts.byDay) == null ? void 0 : _c.length) && !this.opts.byWeekNo) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       const hasOrdinalTokens = this.opts.byDay.some((tok) => /^[+-]?\d/.test(tok));
       if (hasOrdinalTokens && this.opts.byMonth && (this.opts.freq === "MINUTELY" || this.opts.freq === "SECONDLY")) {
         const months = this.opts.byMonth.filter((v) => typeof v === "number").sort((a, b) => a - b);
@@ -30738,14 +30866,11 @@ var _RRuleTemporal = class _RRuleTemporal {
         }
       } else {
         let deltas;
-        if (["DAILY", "HOURLY", "MINUTELY", "SECONDLY"].includes(this.opts.freq) && this.opts.byDay.every((tok) => /^[A-Z]{2}$/.test(tok))) {
-          deltas = this.opts.byDay.map((tok) => (dayMap[tok] - zdt.dayOfWeek + 7) % 7);
+        const weekdayTokens = this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((tok) => tok !== null);
+        if (["DAILY", "HOURLY", "MINUTELY", "SECONDLY"].includes(this.opts.freq) && weekdayTokens.length === this.opts.byDay.length) {
+          deltas = weekdayTokens.map((tok) => (dayMap[tok] - zdt.dayOfWeek + 7) % 7);
         } else {
-          deltas = this.opts.byDay.map((tok) => {
-            var _a2;
-            const wdTok = (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-            return wdTok ? (dayMap[wdTok] - zdt.dayOfWeek + 7) % 7 : null;
-          }).filter((d) => d !== null);
+          deltas = weekdayTokens.map((wdTok) => (dayMap[wdTok] - zdt.dayOfWeek + 7) % 7);
         }
         if (deltas.length) {
           zdt = zdt.add({ days: Math.min(...deltas) });
@@ -30785,32 +30910,26 @@ var _RRuleTemporal = class _RRuleTemporal {
   // --- NEW: constraint checks ---
   // 2) Replace your matchesByDay with this:
   matchesByDay(zdt) {
+    var _a, _b, _c;
     const { byDay, freq } = this.opts;
     if (!byDay) return true;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    for (const token of byDay) {
-      const m = token.match(/^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/);
-      if (!m) continue;
-      const ord = m[1] ? parseInt(m[1], 10) : 0;
-      const weekday = m[2];
-      if (!weekday) continue;
-      const wd = dayMap[weekday];
-      if (freq === "DAILY") {
-        if (zdt.dayOfWeek === wd) return true;
-        continue;
-      }
-      if (ord === 0) {
-        if (zdt.dayOfWeek === wd) return true;
+    if (!this.hasOrdinalByDay) {
+      return (_b = (_a = this.simpleByDayIsoDays) == null ? void 0 : _a.includes(zdt.dayOfWeek)) != null ? _b : false;
+    }
+    for (const token of (_c = this.parsedByDayTokens) != null ? _c : []) {
+      if (freq === "DAILY" && zdt.dayOfWeek === token.isoDay) return true;
+      if (token.ord === 0) {
+        if (zdt.dayOfWeek === token.isoDay) return true;
         continue;
       }
       const month = zdt.month;
       let dt = zdt.with({ day: 1 });
       const candidates = [];
       while (dt.month === month) {
-        if (dt.dayOfWeek === wd) candidates.push(dt.day);
+        if (dt.dayOfWeek === token.isoDay) candidates.push(dt.day);
         dt = dt.add({ days: 1 });
       }
-      const idx = ord > 0 ? ord - 1 : candidates.length + ord;
+      const idx = token.ord > 0 ? token.ord - 1 : candidates.length + token.ord;
       if (candidates[idx] === zdt.day) return true;
     }
     return false;
@@ -31003,6 +31122,485 @@ var _RRuleTemporal = class _RRuleTemporal {
     }
     return true;
   }
+  canUseUtcLinearFastPath(iterator) {
+    if (iterator || this.tzid !== "UTC" || this.opts.rscale || this.opts.rDate || this.opts.exDate) {
+      return false;
+    }
+    if (this.opts.byMonth || this.opts.byMonthDay || this.opts.byYearDay || this.opts.byWeekNo || this.opts.bySetPos) {
+      return false;
+    }
+    switch (this.opts.freq) {
+      case "DAILY":
+        return !this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond && !this.hasOrdinalByDay;
+      case "HOURLY":
+      case "MINUTELY":
+        return !this.opts.byDay && !this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond;
+      default:
+        return false;
+    }
+  }
+  canUseUtcWeeklyFastPath(iterator) {
+    return !iterator && this.tzid === "UTC" && this.opts.freq === "WEEKLY" && !this.opts.rscale && !this.opts.rDate && !this.opts.exDate && !this.opts.byMonth && !this.opts.byMonthDay && !this.opts.byYearDay && !this.opts.byWeekNo && !this.opts.bySetPos && !this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond && !this.hasOrdinalByDay;
+  }
+  canUseUtcMonthlyFastPath(iterator) {
+    return !iterator && this.tzid === "UTC" && this.opts.freq === "MONTHLY" && !this.opts.rscale && !this.opts.rDate && !this.opts.exDate && !this.opts.byYearDay && !this.opts.byWeekNo && this.canUseEpochMillisecondsPrecisionFlag && !!(this.opts.byDay || this.opts.byMonthDay);
+  }
+  utcZdtFromEpochNanoseconds(epochNanoseconds) {
+    return import_polyfill.Temporal.Instant.fromEpochNanoseconds(epochNanoseconds).toZonedDateTimeISO("UTC");
+  }
+  utcZdtFromEpochMilliseconds(epochMilliseconds) {
+    return import_polyfill.Temporal.Instant.fromEpochMilliseconds(epochMilliseconds).toZonedDateTimeISO("UTC");
+  }
+  canUseUtcEpochMillisecondsPrecision() {
+    return this.canUseEpochMillisecondsPrecisionFlag;
+  }
+  buildTimeSlotOffsetsMs() {
+    var _a, _b, _c;
+    if (!this.canUseEpochMillisecondsPrecisionFlag) return void 0;
+    const hours = (_a = this.opts.byHour) != null ? _a : [this.originalDtstart.hour];
+    const minutes = (_b = this.opts.byMinute) != null ? _b : [this.originalDtstart.minute];
+    const seconds = (_c = this.opts.bySecond) != null ? _c : [this.originalDtstart.second];
+    const baseMilliseconds = this.originalDtstart.millisecond;
+    const offsets = [];
+    for (const hour of hours) {
+      for (const minute of minutes) {
+        for (const second of seconds) {
+          offsets.push(((hour * 60 + minute) * 60 + second) * MS_PER_SECOND + baseMilliseconds);
+        }
+      }
+    }
+    return offsets;
+  }
+  findFirstMatchingDailyStep(startDayOfWeek, stepDays, allowedDays) {
+    let dayOfWeek = startDayOfWeek;
+    for (let steps = 0; steps < 7; steps++) {
+      if (allowedDays.includes(dayOfWeek)) {
+        return steps;
+      }
+      dayOfWeek = addIsoDays(dayOfWeek, stepDays);
+    }
+    return null;
+  }
+  allUtcFastPath(iterator) {
+    if (this.canUseUtcLinearFastPath(iterator)) {
+      switch (this.opts.freq) {
+        case "DAILY":
+          return this._allUtcDailySimple();
+        case "HOURLY":
+          return this._allUtcFixedStepSimple(NS_PER_HOUR * BigInt(this.opts.interval));
+        case "MINUTELY":
+          return this._allUtcFixedStepSimple(NS_PER_MINUTE * BigInt(this.opts.interval));
+      }
+    }
+    if (this.canUseUtcMonthlyFastPath(iterator)) {
+      return this._allUtcMonthlyByDayOrMonthDay();
+    }
+    if (this.canUseUtcWeeklyFastPath(iterator)) {
+      return this._allUtcWeeklySimple();
+    }
+    return null;
+  }
+  _allUtcFixedStepSimple(stepNanoseconds) {
+    var _a, _b;
+    const dates = [];
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    let iterationCount = 0;
+    if (this.canUseUtcEpochMillisecondsPrecision()) {
+      let currentMilliseconds = this.originalDtstart.epochMilliseconds;
+      const stepMilliseconds = Number(stepNanoseconds / NS_PER_MILLISECOND);
+      const untilMilliseconds = (_a = this.opts.until) == null ? void 0 : _a.epochMilliseconds;
+      while (true) {
+        if (++iterationCount > this.maxIterations) {
+          throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+        }
+        if (untilMilliseconds !== void 0 && currentMilliseconds > untilMilliseconds) {
+          break;
+        }
+        dates.push(this.utcZdtFromEpochMilliseconds(currentMilliseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          break;
+        }
+        currentMilliseconds += stepMilliseconds;
+      }
+      return dates;
+    }
+    let currentNanoseconds = this.originalDtstart.epochNanoseconds;
+    const untilNanoseconds = (_b = this.opts.until) == null ? void 0 : _b.epochNanoseconds;
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      if (untilNanoseconds !== void 0 && currentNanoseconds > untilNanoseconds) {
+        break;
+      }
+      dates.push(this.utcZdtFromEpochNanoseconds(currentNanoseconds));
+      if (this.shouldBreakForCountLimit(dates.length)) {
+        break;
+      }
+      currentNanoseconds += stepNanoseconds;
+    }
+    return dates;
+  }
+  _allUtcDailySimple() {
+    var _a, _b;
+    const dates = [];
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    const stepDays = this.opts.interval;
+    const allowedDays = this.simpleByDayIsoDays;
+    let iterationCount = 0;
+    if (this.canUseUtcEpochMillisecondsPrecision()) {
+      const stepMilliseconds = stepDays * MS_PER_DAY;
+      const untilMilliseconds = (_a = this.opts.until) == null ? void 0 : _a.epochMilliseconds;
+      let currentMilliseconds = this.originalDtstart.epochMilliseconds;
+      let currentDayOfWeek2 = this.originalDtstart.dayOfWeek;
+      if (allowedDays == null ? void 0 : allowedDays.length) {
+        const firstMatchingStep = this.findFirstMatchingDailyStep(currentDayOfWeek2, stepDays, allowedDays);
+        if (firstMatchingStep === null) {
+          return dates;
+        }
+        currentMilliseconds += firstMatchingStep * stepMilliseconds;
+        currentDayOfWeek2 = addIsoDays(currentDayOfWeek2, firstMatchingStep * stepDays);
+      }
+      while (true) {
+        if (++iterationCount > this.maxIterations) {
+          throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+        }
+        if (untilMilliseconds !== void 0 && currentMilliseconds > untilMilliseconds) {
+          break;
+        }
+        if (!allowedDays || allowedDays.includes(currentDayOfWeek2)) {
+          dates.push(this.utcZdtFromEpochMilliseconds(currentMilliseconds));
+          if (this.shouldBreakForCountLimit(dates.length)) {
+            break;
+          }
+        }
+        currentMilliseconds += stepMilliseconds;
+        currentDayOfWeek2 = addIsoDays(currentDayOfWeek2, stepDays);
+      }
+      return dates;
+    }
+    const stepNanoseconds = BigInt(stepDays) * NS_PER_DAY;
+    const untilNanoseconds = (_b = this.opts.until) == null ? void 0 : _b.epochNanoseconds;
+    let currentNanoseconds = this.originalDtstart.epochNanoseconds;
+    let currentDayOfWeek = this.originalDtstart.dayOfWeek;
+    if (allowedDays == null ? void 0 : allowedDays.length) {
+      const firstMatchingStep = this.findFirstMatchingDailyStep(currentDayOfWeek, stepDays, allowedDays);
+      if (firstMatchingStep === null) {
+        return dates;
+      }
+      currentNanoseconds += BigInt(firstMatchingStep) * stepNanoseconds;
+      currentDayOfWeek = addIsoDays(currentDayOfWeek, firstMatchingStep * stepDays);
+    }
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      if (untilNanoseconds !== void 0 && currentNanoseconds > untilNanoseconds) {
+        break;
+      }
+      if (!allowedDays || allowedDays.includes(currentDayOfWeek)) {
+        dates.push(this.utcZdtFromEpochNanoseconds(currentNanoseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          break;
+        }
+      }
+      currentNanoseconds += stepNanoseconds;
+      currentDayOfWeek = addIsoDays(currentDayOfWeek, stepDays);
+    }
+    return dates;
+  }
+  _allUtcWeeklySimple() {
+    var _a, _b, _c, _d, _e;
+    const dates = [];
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    const start = this.originalDtstart;
+    const wkstToken = (_a = extractWeekdayToken(this.opts.wkst || "MO")) != null ? _a : "MO";
+    const wkstDay = (_b = weekdayToIsoDay[wkstToken]) != null ? _b : 1;
+    const targetDays = this.opts.byDay ? [...(_c = this.allByDayIsoDays) != null ? _c : []] : [start.dayOfWeek];
+    const dayOffsets = targetDays.map((day) => (day - wkstDay + 7) % 7).sort((a, b) => a - b);
+    const weekStartOffset = (start.dayOfWeek - wkstDay + 7) % 7;
+    let iterationCount = 0;
+    if (this.canUseUtcEpochMillisecondsPrecision()) {
+      const startMilliseconds = start.epochMilliseconds;
+      const untilMilliseconds = (_d = this.opts.until) == null ? void 0 : _d.epochMilliseconds;
+      const weekStepMilliseconds = this.opts.interval * MS_PER_WEEK;
+      let weekStartMilliseconds = startMilliseconds - weekStartOffset * MS_PER_DAY;
+      while (true) {
+        if (++iterationCount > this.maxIterations) {
+          throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+        }
+        for (const dayOffset of dayOffsets) {
+          const occurrenceMilliseconds = weekStartMilliseconds + dayOffset * MS_PER_DAY;
+          if (occurrenceMilliseconds < startMilliseconds) {
+            continue;
+          }
+          if (untilMilliseconds !== void 0 && occurrenceMilliseconds > untilMilliseconds) {
+            return dates;
+          }
+          dates.push(this.utcZdtFromEpochMilliseconds(occurrenceMilliseconds));
+          if (this.shouldBreakForCountLimit(dates.length)) {
+            return dates;
+          }
+        }
+        weekStartMilliseconds += weekStepMilliseconds;
+      }
+    }
+    const startNanoseconds = start.epochNanoseconds;
+    const untilNanoseconds = (_e = this.opts.until) == null ? void 0 : _e.epochNanoseconds;
+    const weekStepNanoseconds = BigInt(this.opts.interval) * NS_PER_WEEK;
+    let weekStartNanoseconds = startNanoseconds - BigInt(weekStartOffset) * NS_PER_DAY;
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      for (const dayOffset of dayOffsets) {
+        const occurrenceNanoseconds = weekStartNanoseconds + BigInt(dayOffset) * NS_PER_DAY;
+        if (occurrenceNanoseconds < startNanoseconds) {
+          continue;
+        }
+        if (untilNanoseconds !== void 0 && occurrenceNanoseconds > untilNanoseconds) {
+          return dates;
+        }
+        dates.push(this.utcZdtFromEpochNanoseconds(occurrenceNanoseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          return dates;
+        }
+      }
+      weekStartNanoseconds += weekStepNanoseconds;
+    }
+  }
+  hasSingleExpandedTimeSlot() {
+    var _a, _b, _c;
+    if (this.timeSlotOffsetsMs) {
+      return this.timeSlotOffsetsMs.length === 1;
+    }
+    const hours = (_a = this.opts.byHour) != null ? _a : [this.originalDtstart.hour];
+    const minutes = (_b = this.opts.byMinute) != null ? _b : [this.originalDtstart.minute];
+    const seconds = (_c = this.opts.bySecond) != null ? _c : [this.originalDtstart.second];
+    return hours.length === 1 && minutes.length === 1 && seconds.length === 1;
+  }
+  buildMonthlyOccurrenceOnDay(monthStart, day) {
+    const base = monthStart.day === day ? monthStart : monthStart.with({ day });
+    return this.applyTimeOverride(base);
+  }
+  applyBySetPosToSortedList(list) {
+    const { bySetPos } = this.opts;
+    if (!bySetPos || !bySetPos.length || list.length === 0) return list;
+    const out = [];
+    const len = list.length;
+    for (const pos of bySetPos) {
+      const idx = pos > 0 ? pos - 1 : len + pos;
+      if (idx >= 0 && idx < len) out.push(list[idx]);
+    }
+    return out;
+  }
+  generateMonthlyOccurrenceDays(sample) {
+    const { byDay, byMonth, byMonthDay } = this.opts;
+    const monthStart = sample.day === 1 ? sample : sample.with({ day: 1 });
+    if (byMonth && !byMonth.includes(sample.month)) return [];
+    const lastDay = monthStart.add({ months: 1 }).subtract({ days: 1 }).day;
+    let byMonthDayHits = [];
+    if (byMonthDay && byMonthDay.length > 0) {
+      byMonthDayHits = byMonthDay.map((d) => d > 0 ? d : lastDay + d + 1).filter((d) => d >= 1 && d <= lastDay);
+      byMonthDayHits = [...new Set(byMonthDayHits)].sort((a, b) => a - b);
+    }
+    if (!byDay && byMonthDay && byMonthDay.length > 0) {
+      return byMonthDayHits;
+    }
+    if (!byDay) {
+      return [sample.day];
+    }
+    const tokens = this.parsedByDayTokens;
+    if (!(tokens == null ? void 0 : tokens.length)) return [];
+    const firstDayOfWeek = monthStart.dayOfWeek;
+    const lastDayOfWeek = (firstDayOfWeek - 1 + lastDay - 1) % 7 + 1;
+    const byDayHits = /* @__PURE__ */ new Set();
+    for (const { ord, isoDay } of tokens) {
+      if (ord === 0) {
+        let day = 1 + (isoDay - firstDayOfWeek + 7) % 7;
+        while (day <= lastDay) {
+          byDayHits.add(day);
+          day += 7;
+        }
+      } else {
+        let day;
+        if (ord > 0) {
+          day = 1 + (isoDay - firstDayOfWeek + 7) % 7 + 7 * (ord - 1);
+        } else {
+          const lastMatch = lastDay - (lastDayOfWeek - isoDay + 7) % 7;
+          day = lastMatch + 7 * (ord + 1);
+        }
+        if (day >= 1 && day <= lastDay) {
+          byDayHits.add(day);
+        }
+      }
+    }
+    let finalDays = [...byDayHits].sort((a, b) => a - b);
+    if (byMonthDay && byMonthDay.length > 0) {
+      if (byMonthDayHits.length === 0) {
+        return [];
+      }
+      const byMonthDayHitSet = new Set(byMonthDayHits);
+      finalDays = finalDays.filter((d) => byMonthDayHitSet.has(d));
+    }
+    return finalDays;
+  }
+  generateMonthlyOccurrencesOptimizedBySetPos(sample) {
+    if (!this.opts.bySetPos || !this.hasSingleExpandedTimeSlot()) {
+      return null;
+    }
+    const monthStart = sample.day === 1 ? sample : sample.with({ day: 1 });
+    const days = this.generateMonthlyOccurrenceDays(monthStart);
+    if (days.length === 0) {
+      return [];
+    }
+    const selectedDays = this.applyBySetPosToSortedList(days);
+    if (selectedDays.length === 0) {
+      return [];
+    }
+    return selectedDays.sort((a, b) => a - b).map((day) => this.buildMonthlyOccurrenceOnDay(monthStart, day));
+  }
+  isGregorianLeapYear(year) {
+    return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  }
+  daysInGregorianMonth(year, month) {
+    if (month === 2 && this.isGregorianLeapYear(year)) {
+      return 29;
+    }
+    return GREGORIAN_MONTH_LENGTHS[month - 1];
+  }
+  gregorianIsoDayOfWeek(year, month, day) {
+    let adjustedYear = year;
+    if (month < 3) adjustedYear -= 1;
+    const sundayZero = (adjustedYear + Math.floor(adjustedYear / 4) - Math.floor(adjustedYear / 100) + Math.floor(adjustedYear / 400) + GREGORIAN_WEEKDAY_OFFSETS[month - 1] + day) % 7;
+    return sundayZero === 0 ? 7 : sundayZero;
+  }
+  monthIndexToYearMonth(monthIndex) {
+    const year = Math.floor(monthIndex / 12);
+    return {
+      year,
+      month: monthIndex - year * 12 + 1
+    };
+  }
+  generateMonthlyOccurrenceDaysUtc(year, month) {
+    if (this.numericByMonths && this.numericByMonths.length > 0 && !this.numericByMonths.includes(month)) {
+      return [];
+    }
+    const byMonthDay = this.opts.byMonthDay;
+    const byDay = this.opts.byDay;
+    const lastDay = this.daysInGregorianMonth(year, month);
+    let byMonthDayHits = [];
+    if (byMonthDay && byMonthDay.length > 0) {
+      byMonthDayHits = byMonthDay.map((day) => day > 0 ? day : lastDay + day + 1).filter((day) => day >= 1 && day <= lastDay);
+      byMonthDayHits = [...new Set(byMonthDayHits)].sort((a, b) => a - b);
+    }
+    if (!byDay && byMonthDay && byMonthDay.length > 0) {
+      return byMonthDayHits;
+    }
+    if (!byDay) {
+      const day = this.originalDtstart.day;
+      return day >= 1 && day <= lastDay ? [day] : [];
+    }
+    const tokens = this.parsedByDayTokens;
+    if (!(tokens == null ? void 0 : tokens.length)) return [];
+    const firstDayOfWeek = this.gregorianIsoDayOfWeek(year, month, 1);
+    const lastDayOfWeek = addIsoDays(firstDayOfWeek, lastDay - 1);
+    const byDayHits = /* @__PURE__ */ new Set();
+    for (const { ord, isoDay } of tokens) {
+      if (ord === 0) {
+        let day = 1 + (isoDay - firstDayOfWeek + 7) % 7;
+        while (day <= lastDay) {
+          byDayHits.add(day);
+          day += 7;
+        }
+      } else {
+        let day;
+        if (ord > 0) {
+          day = 1 + (isoDay - firstDayOfWeek + 7) % 7 + 7 * (ord - 1);
+        } else {
+          const lastMatch = lastDay - (lastDayOfWeek - isoDay + 7) % 7;
+          day = lastMatch + 7 * (ord + 1);
+        }
+        if (day >= 1 && day <= lastDay) {
+          byDayHits.add(day);
+        }
+      }
+    }
+    let finalDays = [...byDayHits].sort((a, b) => a - b);
+    if (byMonthDay && byMonthDay.length > 0) {
+      if (byMonthDayHits.length === 0) return [];
+      const byMonthDayHitSet = new Set(byMonthDayHits);
+      finalDays = finalDays.filter((day) => byMonthDayHitSet.has(day));
+    }
+    return finalDays;
+  }
+  generateMonthlyOccurrenceEpochsUtc(year, month) {
+    var _a;
+    const days = this.generateMonthlyOccurrenceDaysUtc(year, month);
+    if (days.length === 0) return [];
+    const monthStartMs = Date.UTC(year, month - 1, 1, 0, 0, 0, 0);
+    const timeSlotOffsets = (_a = this.timeSlotOffsetsMs) != null ? _a : [0];
+    if (this.opts.bySetPos && this.opts.bySetPos.length > 0) {
+      if (timeSlotOffsets.length === 1) {
+        const selectedDays = this.applyBySetPosToSortedList(days).sort((a, b) => a - b);
+        const offset = timeSlotOffsets[0];
+        return selectedDays.map((day) => monthStartMs + (day - 1) * MS_PER_DAY + offset);
+      }
+      const timestamps2 = [];
+      for (const day of days) {
+        const dayBase = monthStartMs + (day - 1) * MS_PER_DAY;
+        for (const offset of timeSlotOffsets) {
+          timestamps2.push(dayBase + offset);
+        }
+      }
+      return this.applyBySetPosToSortedList(timestamps2).sort((a, b) => a - b);
+    }
+    const timestamps = [];
+    for (const day of days) {
+      const dayBase = monthStartMs + (day - 1) * MS_PER_DAY;
+      for (const offset of timeSlotOffsets) {
+        timestamps.push(dayBase + offset);
+      }
+    }
+    return timestamps;
+  }
+  _allUtcMonthlyByDayOrMonthDay() {
+    var _a;
+    const dates = [];
+    const startMilliseconds = this.originalDtstart.epochMilliseconds;
+    const untilMilliseconds = (_a = this.opts.until) == null ? void 0 : _a.epochMilliseconds;
+    let iterationCount = 0;
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    let monthIndex = this.originalDtstart.year * 12 + (this.originalDtstart.month - 1);
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      const { year, month } = this.monthIndexToYearMonth(monthIndex);
+      const occurrenceEpochs = this.generateMonthlyOccurrenceEpochsUtc(year, month);
+      for (const epochMilliseconds of occurrenceEpochs) {
+        if (epochMilliseconds < startMilliseconds) {
+          continue;
+        }
+        if (untilMilliseconds !== void 0 && epochMilliseconds > untilMilliseconds) {
+          return dates;
+        }
+        dates.push(this.utcZdtFromEpochMilliseconds(epochMilliseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          return dates;
+        }
+      }
+      monthIndex += this.opts.interval;
+    }
+  }
   processOccurrences(occs, dates, start, iterator, extraFilters) {
     let shouldBreak = false;
     for (const occ of occs) {
@@ -31046,11 +31644,10 @@ var _RRuleTemporal = class _RRuleTemporal {
       if (++iterationCount > this.maxIterations) {
         throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
       }
-      let occs = this.generateMonthlyOccurrences(monthCursor);
-      occs = this.applyBySetPos(occs);
-      if (monthCursor.month === start.month && occs.some((o) => import_polyfill.Temporal.ZonedDateTime.compare(o, start) < 0) && occs.some((o) => import_polyfill.Temporal.ZonedDateTime.compare(o, start) === 0)) {
-        monthCursor = monthCursor.add({ months: this.opts.interval });
-        continue;
+      let occs = this.generateMonthlyOccurrencesOptimizedBySetPos(monthCursor);
+      if (!occs) {
+        occs = this.generateMonthlyOccurrences(monthCursor);
+        occs = this.applyBySetPos(occs);
       }
       const { shouldBreak } = this.processOccurrences(occs, dates, start, iterator);
       if (shouldBreak) {
@@ -31061,22 +31658,22 @@ var _RRuleTemporal = class _RRuleTemporal {
     return this.applyCountLimitAndMergeRDates(dates, iterator);
   }
   _allWeekly(iterator) {
-    var _a;
+    var _a, _b, _c;
     const dates = [];
     let iterationCount = 0;
     const start = this.originalDtstart;
     if (!this.addDtstartIfNeeded(dates, iterator)) {
       return this.applyCountLimitAndMergeRDates(dates, iterator);
     }
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    const tokens = this.opts.byDay ? [...this.opts.byDay] : this.opts.byMonthDay && this.opts.byMonthDay.length > 0 ? Object.keys(dayMap) : [Object.entries(dayMap).find(([, d]) => d === start.dayOfWeek)[0]];
-    const dows = tokens.map((tok) => dayMap[tok.slice(-2)]).filter((d) => d !== void 0).sort((a, b) => a - b);
+    const dayMap = weekdayToIsoDay;
+    const dows = this.opts.byDay ? [...(_a = this.allByDayIsoDays) != null ? _a : []] : this.opts.byMonthDay && this.opts.byMonthDay.length > 0 ? [...Object.values(dayMap)] : [start.dayOfWeek];
     const firstWeekDates = dows.map((dw) => {
       const delta = (dw - start.dayOfWeek + 7) % 7;
       return start.add({ days: delta });
     });
     const firstOccurrence = firstWeekDates.reduce((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b) <= 0 ? a : b);
-    const wkstDay = (_a = dayMap[this.opts.wkst || "MO"]) != null ? _a : 1;
+    const wkstToken = (_b = extractWeekdayToken(this.opts.wkst || "MO")) != null ? _b : "MO";
+    const wkstDay = (_c = dayMap[wkstToken]) != null ? _c : 1;
     const firstOccWeekOffset = (firstOccurrence.dayOfWeek - wkstDay + 7) % 7;
     let weekCursor = firstOccurrence.subtract({ days: firstOccWeekOffset });
     while (true) {
@@ -31474,6 +32071,10 @@ var _RRuleTemporal = class _RRuleTemporal {
     }
     if (!this.opts.count && !this.opts.until && !iterator) {
       throw new Error("all() requires iterator when no COUNT/UNTIL");
+    }
+    const utcFastPathDates = this.allUtcFastPath(iterator);
+    if (utcFastPathDates) {
+      return utcFastPathDates;
     }
     if (this.opts.freq === "MONTHLY" && (this.opts.byDay || this.opts.byMonthDay) && !this.opts.byWeekNo) {
       return this._allMonthlyByDayOrMonthDay(iterator);
@@ -31878,58 +32479,14 @@ var _RRuleTemporal = class _RRuleTemporal {
    * matching your opts.byDay and opts.byMonth (or the single "same day" if no BYDAY).
    */
   generateMonthlyOccurrences(sample) {
-    var _a;
-    const { byDay, byMonth, byMonthDay } = this.opts;
-    if (byMonth && !byMonth.includes(sample.month)) return [];
-    const lastDay = sample.with({ day: 1 }).add({ months: 1 }).subtract({ days: 1 }).day;
-    let byMonthDayHits = [];
-    if (byMonthDay && byMonthDay.length > 0) {
-      byMonthDayHits = byMonthDay.map((d) => d > 0 ? d : lastDay + d + 1).filter((d) => d >= 1 && d <= lastDay);
-    }
-    if (!byDay && byMonthDay && byMonthDay.length > 0) {
-      if (byMonthDayHits.length === 0) {
-        return [];
-      }
-      const dates = byMonthDayHits.map((d) => sample.with({ day: d }));
-      return dates.flatMap((z) => this.expandByTime(z)).sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
-    }
-    if (!byDay) {
+    const monthStart = sample.day === 1 ? sample : sample.with({ day: 1 });
+    if (!this.opts.byDay && !this.opts.byMonthDay) {
       return this.expandByTime(sample);
     }
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    const tokens = byDay.map((tok) => {
-      const m = tok.match(/^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/);
-      if (!m) return null;
-      return { ord: m[1] ? parseInt(m[1], 10) : 0, wd: dayMap[m[2]] };
-    }).filter((x) => x !== null);
-    const buckets = {};
-    let cursor = sample.with({ day: 1 });
-    while (cursor.month === sample.month) {
-      const dow = cursor.dayOfWeek;
-      (buckets[dow] || (buckets[dow] = [])).push(cursor.day);
-      cursor = cursor.add({ days: 1 });
-    }
-    const byDayHits = [];
-    for (const { ord, wd } of tokens) {
-      const list = (_a = buckets[wd]) != null ? _a : [];
-      if (!list.length) continue;
-      if (ord === 0) {
-        for (const d of list) byDayHits.push(d);
-      } else {
-        const idx = ord > 0 ? ord - 1 : list.length + ord;
-        const dayN = list[idx];
-        if (dayN) byDayHits.push(dayN);
-      }
-    }
-    let finalDays = byDayHits;
-    if (byMonthDay && byMonthDay.length > 0) {
-      if (byMonthDayHits.length === 0) {
-        return [];
-      }
-      finalDays = finalDays.filter((d) => byMonthDayHits.includes(d));
-    }
-    const hits = finalDays.map((d) => sample.with({ day: d }));
-    return hits.flatMap((z) => this.expandByTime(z)).sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
+    const finalDays = this.generateMonthlyOccurrenceDays(monthStart);
+    if (finalDays.length === 0) return [];
+    const hits = finalDays.map((d) => monthStart.with({ day: d }));
+    return hits.flatMap((z) => this.expandByTime(z));
   }
   /**
    * Given any date in a year, return all ZonedDateTimes in that year matching
@@ -31941,12 +32498,12 @@ var _RRuleTemporal = class _RRuleTemporal {
     let occs = [];
     const hasOrdinalByDay = this.opts.byDay && this.opts.byDay.some((t) => /^[+-]?\d/.test(t));
     if (hasOrdinalByDay && !this.opts.byMonth) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       for (const tok of this.opts.byDay) {
-        const m = tok.match(/^([+-]?\d{1,2})(MO|TU|WE|TH|FR|SA|SU)$/);
-        if (!m) continue;
-        const ord = parseInt(m[1], 10);
-        const wd = dayMap[m[2]];
+        const parsed = parseByDayToken(tok);
+        if (!parsed || parsed.ord === 0) continue;
+        const ord = parsed.ord;
+        const wd = dayMap[parsed.weekday];
         let dt;
         if (ord > 0) {
           const jan1 = sample.with({ month: 1, day: 1 });
@@ -32010,7 +32567,7 @@ var _RRuleTemporal = class _RRuleTemporal {
     return occs;
   }
   addByDay(tokens, weekStart) {
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+    const dayMap = weekdayToIsoDay;
     const wkst = dayMap[this.opts.wkst || "MO"];
     const entries = [];
     for (const tok of tokens) {
@@ -32125,12 +32682,11 @@ var _RRuleTemporal = class _RRuleTemporal {
       return current;
     }
     if (this.opts.byDay && !this.matchesByDay(current)) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-      const targetDays = this.opts.byDay.map((tok) => {
-        var _a;
-        return (_a = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a[1];
-      }).filter(Boolean).map((day) => dayMap[day]).filter(Boolean);
-      const nextDayOfWeek = this.findNextValidValue(current.dayOfWeek, targetDays.sort(), (a, b) => a - b);
+      const targetDays = this.allByDayIsoDays;
+      if (!(targetDays == null ? void 0 : targetDays.length)) {
+        return this.applyTimeOverride(current.add({ days: 1 }).with({ hour: 0, minute: 0, second: 0 }));
+      }
+      const nextDayOfWeek = this.findNextValidValue(current.dayOfWeek, targetDays, (a, b) => a - b);
       if (nextDayOfWeek) {
         const delta = (nextDayOfWeek - current.dayOfWeek + 7) % 7;
         current = current.add({ days: delta }).with({ hour: 0, minute: 0, second: 0 });
@@ -32164,17 +32720,12 @@ var _RRuleTemporal = class _RRuleTemporal {
     const { bySetPos } = this.opts;
     if (!bySetPos || !bySetPos.length) return list;
     const sorted = [...list].sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
-    const out = [];
-    const len = sorted.length;
-    for (const pos of bySetPos) {
-      const idx = pos > 0 ? pos - 1 : len + pos;
-      if (idx >= 0 && idx < len) out.push(sorted[idx]);
-    }
+    const out = this.applyBySetPosToSortedList(sorted);
     return out.sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
   }
   isoWeekByDay(sample) {
     var _a;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+    const dayMap = weekdayToIsoDay;
     const wkst = dayMap[this.opts.wkst || "MO"];
     const jan1 = sample.with({ month: 1, day: 1 });
     const jan4 = sample.with({ month: 1, day: 4 });
@@ -32182,10 +32733,7 @@ var _RRuleTemporal = class _RRuleTemporal {
     const firstWeekStart = jan4.subtract({ days: delta });
     const isLeapYear = jan1.inLeapYear;
     const lastWeek = jan1.dayOfWeek === 4 || isLeapYear && jan1.dayOfWeek === 3 ? 53 : 52;
-    const tokens = ((_a = this.opts.byDay) == null ? void 0 : _a.length) ? this.opts.byDay.map((tok) => {
-      var _a2;
-      return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-    }) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
+    const tokens = ((_a = this.opts.byDay) == null ? void 0 : _a.length) ? this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
     return { lastWeek, firstWeekStart, tokens };
   }
   /**
@@ -32303,7 +32851,7 @@ var _RRuleTemporal = class _RRuleTemporal {
   rscaleMatchesByWeekNo(calId, pd) {
     const list = this.opts.byWeekNo;
     if (!list || list.length === 0) return true;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+    const dayMap = weekdayToIsoDay;
     const wkst = dayMap[this.opts.wkst || "MO"];
     const weekStart = pd.subtract({ days: (pd.dayOfWeek - wkst + 7) % 7 });
     const thursday = weekStart.add({ days: (4 - wkst + 7) % 7 });
@@ -32328,11 +32876,8 @@ var _RRuleTemporal = class _RRuleTemporal {
   rscaleMatchesByDayBasic(pd) {
     const byDay = this.opts.byDay;
     if (!byDay || byDay.length === 0) return true;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    const tokens = byDay.map((tok) => {
-      var _a;
-      return (_a = tok.match(/^(?:[+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a[1];
-    }).filter((x) => !!x);
+    const dayMap = weekdayToIsoDay;
+    const tokens = byDay.map((tok) => extractWeekdayToken(tok)).filter((x) => x !== null);
     if (tokens.length === 0) return true;
     return tokens.some((wd) => dayMap[wd] === pd.dayOfWeek);
   }
@@ -32377,7 +32922,7 @@ var _RRuleTemporal = class _RRuleTemporal {
       }
     }
     if (byDay && byDay.length > 0) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       const buckets = {};
       let cur = monthStart;
       while (cur.month === monthStart.month && cur.year === monthStart.year) {
@@ -32386,10 +32931,10 @@ var _RRuleTemporal = class _RRuleTemporal {
         cur = cur.add({ days: 1 });
       }
       for (const tok of byDay) {
-        const m = tok.match(/^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/);
-        if (!m) continue;
-        const ord = m[1] ? parseInt(m[1], 10) : 0;
-        const wd = dayMap[m[2]];
+        const parsed = parseByDayToken(tok);
+        if (!parsed) continue;
+        const ord = parsed.ord;
+        const wd = dayMap[parsed.weekday];
         const list = buckets[wd] || [];
         if (list.length === 0) continue;
         if (ord === 0) {
@@ -32426,15 +32971,12 @@ var _RRuleTemporal = class _RRuleTemporal {
         let occs = [];
         const monthsTokens = this.opts.byMonth;
         const months = this.monthsOfYear(calId, tgtYear);
-        const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+        const dayMap = weekdayToIsoDay;
         const wkst = dayMap[this.opts.wkst || "MO"];
         if (this.opts.byWeekNo && this.opts.byWeekNo.length > 0) {
           const firstStart = this.rscaleFirstWeekStart(calId, tgtYear, wkst);
           const lastWeek = this.rscaleLastWeekCount(calId, tgtYear, wkst);
-          const tokens = ((_b = this.opts.byDay) == null ? void 0 : _b.length) ? this.opts.byDay.map((tok) => {
-            var _a2;
-            return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-          }) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
+          const tokens = ((_b = this.opts.byDay) == null ? void 0 : _b.length) ? this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
           for (const wn of this.opts.byWeekNo) {
             let idx = wn > 0 ? wn - 1 : lastWeek + wn;
             if (idx < 0 || idx >= lastWeek) continue;
@@ -32503,12 +33045,9 @@ var _RRuleTemporal = class _RRuleTemporal {
       return this.applyCountLimitAndMergeRDates(dates, iterator);
     }
     if (this.opts.freq === "WEEKLY") {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       const wkst = dayMap[this.opts.wkst || "MO"];
-      const tokens = ((_c = this.opts.byDay) == null ? void 0 : _c.length) ? this.opts.byDay.map((tok) => {
-        var _a2;
-        return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-      }) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
+      const tokens = ((_c = this.opts.byDay) == null ? void 0 : _c.length) ? this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
       let weekStart = seed.toPlainDate().subtract({ days: (seed.dayOfWeek - wkst + 7) % 7 });
       while (true) {
         if (++iterationCount > this.maxIterations) {
@@ -32704,6 +33243,51 @@ module.exports = __toCommonJS(totext_exports);
 
 // src/index.ts
 var import_polyfill = __nccwpck_require__(1763);
+var allowedFreq = ["YEARLY", "MONTHLY", "WEEKLY", "DAILY", "HOURLY", "MINUTELY", "SECONDLY"];
+var allowedWeekdays = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+var weekdayToIsoDay = {
+  MO: 1,
+  TU: 2,
+  WE: 3,
+  TH: 4,
+  FR: 5,
+  SA: 6,
+  SU: 7
+};
+var allowedFreqSet = new Set(allowedFreq);
+var allowedWeekdaysSet = new Set(allowedWeekdays);
+var byDayTokenRegex = new RegExp(`^([+-]?\\d{1,2})?(${allowedWeekdays.join("|")})$`);
+var byDayWeekdaySuffixRegex = new RegExp(`(${allowedWeekdays.join("|")})$`);
+var MS_PER_SECOND = 1e3;
+var MS_PER_MINUTE = 60 * MS_PER_SECOND;
+var MS_PER_HOUR = 60 * MS_PER_MINUTE;
+var MS_PER_DAY = 24 * MS_PER_HOUR;
+var MS_PER_WEEK = 7 * MS_PER_DAY;
+var GREGORIAN_MONTH_LENGTHS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+var GREGORIAN_WEEKDAY_OFFSETS = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+var NS_PER_MILLISECOND = BigInt(1e6);
+var NS_PER_SECOND = BigInt(1e9);
+var NS_PER_MINUTE = BigInt(60) * NS_PER_SECOND;
+var NS_PER_HOUR = BigInt(60) * NS_PER_MINUTE;
+var NS_PER_DAY = BigInt(24) * NS_PER_HOUR;
+var NS_PER_WEEK = BigInt(7) * NS_PER_DAY;
+function addIsoDays(dayOfWeek, deltaDays) {
+  return (dayOfWeek - 1 + deltaDays % 7 + 7) % 7 + 1;
+}
+function extractWeekdayToken(token) {
+  const m = token.toUpperCase().match(byDayWeekdaySuffixRegex);
+  const weekday = m == null ? void 0 : m[1];
+  if (!weekday || !allowedWeekdaysSet.has(weekday)) return null;
+  return weekday;
+}
+function parseByDayToken(token) {
+  const m = token.toUpperCase().match(byDayTokenRegex);
+  if (!m) return null;
+  const ord = m[1] ? parseInt(m[1], 10) : 0;
+  const weekday = m[2];
+  if (!weekday || !allowedWeekdaysSet.has(weekday)) return null;
+  return { ord, weekday };
+}
 function isIcsOpts(opts) {
   return typeof opts.rruleString === "string";
 }
@@ -32877,7 +33461,7 @@ function parseRRuleString(input, targetTimezone, dtstart, strict = false) {
         opts.bySecond = parseNumberArray(val, true);
         break;
       case "BYDAY":
-        opts.byDay = val.split(",");
+        opts.byDay = val.split(",").map((token) => token.toUpperCase());
         break;
       case "BYMONTH":
         opts.byMonth = parseByMonthArray(val);
@@ -32895,7 +33479,7 @@ function parseRRuleString(input, targetTimezone, dtstart, strict = false) {
         opts.bySetPos = parseNumberArray(val);
         break;
       case "WKST":
-        opts.wkst = val;
+        opts.wkst = val == null ? void 0 : val.toUpperCase();
         break;
     }
   }
@@ -32916,7 +33500,7 @@ var _RRuleTemporal = class _RRuleTemporal {
     return import_polyfill.Temporal.ZonedDateTime.from(zdt.toString());
   }
   constructor(params) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     let manual;
     if (isIcsOpts(params)) {
       const parsed = parseRRuleString(params.rruleString, params.tzid, params.dtstart, (_a = params.strict) != null ? _a : false);
@@ -32957,6 +33541,32 @@ var _RRuleTemporal = class _RRuleTemporal {
     this.opts = this.sanitizeOpts(manual);
     this.maxIterations = (_g = manual.maxIterations) != null ? _g : 1e4;
     this.includeDtstart = (_h = manual.includeDtstart) != null ? _h : false;
+    this.parsedByDayTokens = this.buildParsedByDayTokens(this.opts.byDay);
+    this.simpleByDayIsoDays = this.buildByDayIsoDays(this.parsedByDayTokens, false);
+    this.allByDayIsoDays = this.buildByDayIsoDays(this.parsedByDayTokens, true);
+    this.hasOrdinalByDay = (_j = (_i = this.parsedByDayTokens) == null ? void 0 : _i.some((token) => token.ord !== 0)) != null ? _j : false;
+    this.canUseEpochMillisecondsPrecisionFlag = this.originalDtstart.microsecond === 0 && this.originalDtstart.nanosecond === 0 && (!this.opts.until || this.opts.until.microsecond === 0 && this.opts.until.nanosecond === 0);
+    this.timeSlotOffsetsMs = this.buildTimeSlotOffsetsMs();
+    this.numericByMonths = (_k = this.opts.byMonth) == null ? void 0 : _k.filter((value) => typeof value === "number");
+  }
+  buildParsedByDayTokens(byDay) {
+    if (!(byDay == null ? void 0 : byDay.length)) return void 0;
+    const tokens = byDay.map((tok) => {
+      const parsed = parseByDayToken(tok);
+      if (!parsed) return null;
+      return {
+        ord: parsed.ord,
+        weekday: parsed.weekday,
+        isoDay: weekdayToIsoDay[parsed.weekday]
+      };
+    }).filter((token) => token !== null);
+    return tokens.length > 0 ? tokens : void 0;
+  }
+  buildByDayIsoDays(tokens, includeOrdinals) {
+    if (!(tokens == null ? void 0 : tokens.length)) return void 0;
+    const isoDays = tokens.filter((token) => includeOrdinals || token.ord === 0).map((token) => token.isoDay);
+    if (!isoDays.length) return void 0;
+    return [...new Set(isoDays)].sort((a, b) => a - b);
   }
   sanitizeNumericArray(arr, min, max, allowZero = false, sort = false) {
     if (!arr) return void 0;
@@ -32965,22 +33575,20 @@ var _RRuleTemporal = class _RRuleTemporal {
     return sort ? sanitized.sort((a, b) => a - b) : sanitized;
   }
   sanitizeByDay(byDay) {
-    const validDay = /^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/;
-    const days = (byDay != null ? byDay : []).filter((day) => day && typeof day === "string");
+    const days = (byDay != null ? byDay : []).filter((day) => Boolean(day) && typeof day === "string");
+    const normalized = [];
     for (const day of days) {
-      const match = day.match(validDay);
-      if (!match) {
+      const token = day.toUpperCase();
+      const parsed = parseByDayToken(token);
+      if (!parsed) {
         throw new Error(`Invalid BYDAY value: ${day}`);
       }
-      const ord = match[1];
-      if (ord) {
-        const ordInt = parseInt(ord, 10);
-        if (ordInt === 0) {
-          throw new Error(`Invalid BYDAY value: ${day}`);
-        }
+      if (parsed.ord === 0 && /^[+-]?\d/.test(token)) {
+        throw new Error(`Invalid BYDAY value: ${day}`);
       }
+      normalized.push(token);
     }
-    return days.length > 0 ? days : void 0;
+    return normalized.length > 0 ? normalized : void 0;
   }
   enforceStrictRfc(opts) {
     var _a;
@@ -33011,7 +33619,17 @@ var _RRuleTemporal = class _RRuleTemporal {
   }
   sanitizeOpts(opts) {
     var _a;
+    if (!allowedFreqSet.has(opts.freq)) {
+      throw new Error(`Invalid FREQ value: ${opts.freq}`);
+    }
     opts.byDay = this.sanitizeByDay(opts.byDay);
+    if (opts.wkst) {
+      const wkst = opts.wkst.toUpperCase();
+      if (!allowedWeekdaysSet.has(wkst)) {
+        throw new Error(`Invalid WKST value: ${opts.wkst}`);
+      }
+      opts.wkst = wkst;
+    }
     if (opts.byMonth) {
       const numeric = opts.byMonth.filter((v) => typeof v === "number");
       const stringy = opts.byMonth.filter((v) => typeof v === "string");
@@ -33070,9 +33688,21 @@ var _RRuleTemporal = class _RRuleTemporal {
    */
   expandByTime(base) {
     var _a, _b, _c;
+    if (!this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond) {
+      return [base];
+    }
     const hours = (_a = this.opts.byHour) != null ? _a : [base.hour];
     const minutes = (_b = this.opts.byMinute) != null ? _b : [base.minute];
     const seconds = (_c = this.opts.bySecond) != null ? _c : [base.second];
+    if (hours.length === 1 && minutes.length === 1 && seconds.length === 1) {
+      const hour = hours[0];
+      const minute = minutes[0];
+      const second = seconds[0];
+      if (hour === base.hour && minute === base.minute && second === base.second) {
+        return [base];
+      }
+      return [base.with({ hour, minute, second })];
+    }
     const out = [];
     for (const h of hours) {
       for (const m of minutes) {
@@ -33226,11 +33856,8 @@ var _RRuleTemporal = class _RRuleTemporal {
             weekStart = firstThursday.subtract({ days: 3 }).add({ weeks: lastWeek + targetWeek });
           }
           if ((_b = this.opts.byDay) == null ? void 0 : _b.length) {
-            const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-            const targetDays = this.opts.byDay.map((tok) => {
-              var _a2;
-              return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-            }).filter(Boolean).map((day) => dayMap[day]).filter(Boolean);
+            const dayMap = weekdayToIsoDay;
+            const targetDays = this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null).map((day) => dayMap[day]).filter(Boolean);
             if (targetDays.length) {
               const candidates = targetDays.map((dayOfWeek) => {
                 const delta = (dayOfWeek - weekStart.dayOfWeek + 7) % 7;
@@ -33253,7 +33880,7 @@ var _RRuleTemporal = class _RRuleTemporal {
       }
     }
     if (((_c = this.opts.byDay) == null ? void 0 : _c.length) && !this.opts.byWeekNo) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       const hasOrdinalTokens = this.opts.byDay.some((tok) => /^[+-]?\d/.test(tok));
       if (hasOrdinalTokens && this.opts.byMonth && (this.opts.freq === "MINUTELY" || this.opts.freq === "SECONDLY")) {
         const months = this.opts.byMonth.filter((v) => typeof v === "number").sort((a, b) => a - b);
@@ -33279,14 +33906,11 @@ var _RRuleTemporal = class _RRuleTemporal {
         }
       } else {
         let deltas;
-        if (["DAILY", "HOURLY", "MINUTELY", "SECONDLY"].includes(this.opts.freq) && this.opts.byDay.every((tok) => /^[A-Z]{2}$/.test(tok))) {
-          deltas = this.opts.byDay.map((tok) => (dayMap[tok] - zdt.dayOfWeek + 7) % 7);
+        const weekdayTokens = this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((tok) => tok !== null);
+        if (["DAILY", "HOURLY", "MINUTELY", "SECONDLY"].includes(this.opts.freq) && weekdayTokens.length === this.opts.byDay.length) {
+          deltas = weekdayTokens.map((tok) => (dayMap[tok] - zdt.dayOfWeek + 7) % 7);
         } else {
-          deltas = this.opts.byDay.map((tok) => {
-            var _a2;
-            const wdTok = (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-            return wdTok ? (dayMap[wdTok] - zdt.dayOfWeek + 7) % 7 : null;
-          }).filter((d) => d !== null);
+          deltas = weekdayTokens.map((wdTok) => (dayMap[wdTok] - zdt.dayOfWeek + 7) % 7);
         }
         if (deltas.length) {
           zdt = zdt.add({ days: Math.min(...deltas) });
@@ -33326,32 +33950,26 @@ var _RRuleTemporal = class _RRuleTemporal {
   // --- NEW: constraint checks ---
   // 2) Replace your matchesByDay with this:
   matchesByDay(zdt) {
+    var _a, _b, _c;
     const { byDay, freq } = this.opts;
     if (!byDay) return true;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    for (const token of byDay) {
-      const m = token.match(/^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/);
-      if (!m) continue;
-      const ord = m[1] ? parseInt(m[1], 10) : 0;
-      const weekday = m[2];
-      if (!weekday) continue;
-      const wd = dayMap[weekday];
-      if (freq === "DAILY") {
-        if (zdt.dayOfWeek === wd) return true;
-        continue;
-      }
-      if (ord === 0) {
-        if (zdt.dayOfWeek === wd) return true;
+    if (!this.hasOrdinalByDay) {
+      return (_b = (_a = this.simpleByDayIsoDays) == null ? void 0 : _a.includes(zdt.dayOfWeek)) != null ? _b : false;
+    }
+    for (const token of (_c = this.parsedByDayTokens) != null ? _c : []) {
+      if (freq === "DAILY" && zdt.dayOfWeek === token.isoDay) return true;
+      if (token.ord === 0) {
+        if (zdt.dayOfWeek === token.isoDay) return true;
         continue;
       }
       const month = zdt.month;
       let dt = zdt.with({ day: 1 });
       const candidates = [];
       while (dt.month === month) {
-        if (dt.dayOfWeek === wd) candidates.push(dt.day);
+        if (dt.dayOfWeek === token.isoDay) candidates.push(dt.day);
         dt = dt.add({ days: 1 });
       }
-      const idx = ord > 0 ? ord - 1 : candidates.length + ord;
+      const idx = token.ord > 0 ? token.ord - 1 : candidates.length + token.ord;
       if (candidates[idx] === zdt.day) return true;
     }
     return false;
@@ -33544,6 +34162,485 @@ var _RRuleTemporal = class _RRuleTemporal {
     }
     return true;
   }
+  canUseUtcLinearFastPath(iterator) {
+    if (iterator || this.tzid !== "UTC" || this.opts.rscale || this.opts.rDate || this.opts.exDate) {
+      return false;
+    }
+    if (this.opts.byMonth || this.opts.byMonthDay || this.opts.byYearDay || this.opts.byWeekNo || this.opts.bySetPos) {
+      return false;
+    }
+    switch (this.opts.freq) {
+      case "DAILY":
+        return !this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond && !this.hasOrdinalByDay;
+      case "HOURLY":
+      case "MINUTELY":
+        return !this.opts.byDay && !this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond;
+      default:
+        return false;
+    }
+  }
+  canUseUtcWeeklyFastPath(iterator) {
+    return !iterator && this.tzid === "UTC" && this.opts.freq === "WEEKLY" && !this.opts.rscale && !this.opts.rDate && !this.opts.exDate && !this.opts.byMonth && !this.opts.byMonthDay && !this.opts.byYearDay && !this.opts.byWeekNo && !this.opts.bySetPos && !this.opts.byHour && !this.opts.byMinute && !this.opts.bySecond && !this.hasOrdinalByDay;
+  }
+  canUseUtcMonthlyFastPath(iterator) {
+    return !iterator && this.tzid === "UTC" && this.opts.freq === "MONTHLY" && !this.opts.rscale && !this.opts.rDate && !this.opts.exDate && !this.opts.byYearDay && !this.opts.byWeekNo && this.canUseEpochMillisecondsPrecisionFlag && !!(this.opts.byDay || this.opts.byMonthDay);
+  }
+  utcZdtFromEpochNanoseconds(epochNanoseconds) {
+    return import_polyfill.Temporal.Instant.fromEpochNanoseconds(epochNanoseconds).toZonedDateTimeISO("UTC");
+  }
+  utcZdtFromEpochMilliseconds(epochMilliseconds) {
+    return import_polyfill.Temporal.Instant.fromEpochMilliseconds(epochMilliseconds).toZonedDateTimeISO("UTC");
+  }
+  canUseUtcEpochMillisecondsPrecision() {
+    return this.canUseEpochMillisecondsPrecisionFlag;
+  }
+  buildTimeSlotOffsetsMs() {
+    var _a, _b, _c;
+    if (!this.canUseEpochMillisecondsPrecisionFlag) return void 0;
+    const hours = (_a = this.opts.byHour) != null ? _a : [this.originalDtstart.hour];
+    const minutes = (_b = this.opts.byMinute) != null ? _b : [this.originalDtstart.minute];
+    const seconds = (_c = this.opts.bySecond) != null ? _c : [this.originalDtstart.second];
+    const baseMilliseconds = this.originalDtstart.millisecond;
+    const offsets = [];
+    for (const hour of hours) {
+      for (const minute of minutes) {
+        for (const second of seconds) {
+          offsets.push(((hour * 60 + minute) * 60 + second) * MS_PER_SECOND + baseMilliseconds);
+        }
+      }
+    }
+    return offsets;
+  }
+  findFirstMatchingDailyStep(startDayOfWeek, stepDays, allowedDays) {
+    let dayOfWeek = startDayOfWeek;
+    for (let steps = 0; steps < 7; steps++) {
+      if (allowedDays.includes(dayOfWeek)) {
+        return steps;
+      }
+      dayOfWeek = addIsoDays(dayOfWeek, stepDays);
+    }
+    return null;
+  }
+  allUtcFastPath(iterator) {
+    if (this.canUseUtcLinearFastPath(iterator)) {
+      switch (this.opts.freq) {
+        case "DAILY":
+          return this._allUtcDailySimple();
+        case "HOURLY":
+          return this._allUtcFixedStepSimple(NS_PER_HOUR * BigInt(this.opts.interval));
+        case "MINUTELY":
+          return this._allUtcFixedStepSimple(NS_PER_MINUTE * BigInt(this.opts.interval));
+      }
+    }
+    if (this.canUseUtcMonthlyFastPath(iterator)) {
+      return this._allUtcMonthlyByDayOrMonthDay();
+    }
+    if (this.canUseUtcWeeklyFastPath(iterator)) {
+      return this._allUtcWeeklySimple();
+    }
+    return null;
+  }
+  _allUtcFixedStepSimple(stepNanoseconds) {
+    var _a, _b;
+    const dates = [];
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    let iterationCount = 0;
+    if (this.canUseUtcEpochMillisecondsPrecision()) {
+      let currentMilliseconds = this.originalDtstart.epochMilliseconds;
+      const stepMilliseconds = Number(stepNanoseconds / NS_PER_MILLISECOND);
+      const untilMilliseconds = (_a = this.opts.until) == null ? void 0 : _a.epochMilliseconds;
+      while (true) {
+        if (++iterationCount > this.maxIterations) {
+          throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+        }
+        if (untilMilliseconds !== void 0 && currentMilliseconds > untilMilliseconds) {
+          break;
+        }
+        dates.push(this.utcZdtFromEpochMilliseconds(currentMilliseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          break;
+        }
+        currentMilliseconds += stepMilliseconds;
+      }
+      return dates;
+    }
+    let currentNanoseconds = this.originalDtstart.epochNanoseconds;
+    const untilNanoseconds = (_b = this.opts.until) == null ? void 0 : _b.epochNanoseconds;
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      if (untilNanoseconds !== void 0 && currentNanoseconds > untilNanoseconds) {
+        break;
+      }
+      dates.push(this.utcZdtFromEpochNanoseconds(currentNanoseconds));
+      if (this.shouldBreakForCountLimit(dates.length)) {
+        break;
+      }
+      currentNanoseconds += stepNanoseconds;
+    }
+    return dates;
+  }
+  _allUtcDailySimple() {
+    var _a, _b;
+    const dates = [];
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    const stepDays = this.opts.interval;
+    const allowedDays = this.simpleByDayIsoDays;
+    let iterationCount = 0;
+    if (this.canUseUtcEpochMillisecondsPrecision()) {
+      const stepMilliseconds = stepDays * MS_PER_DAY;
+      const untilMilliseconds = (_a = this.opts.until) == null ? void 0 : _a.epochMilliseconds;
+      let currentMilliseconds = this.originalDtstart.epochMilliseconds;
+      let currentDayOfWeek2 = this.originalDtstart.dayOfWeek;
+      if (allowedDays == null ? void 0 : allowedDays.length) {
+        const firstMatchingStep = this.findFirstMatchingDailyStep(currentDayOfWeek2, stepDays, allowedDays);
+        if (firstMatchingStep === null) {
+          return dates;
+        }
+        currentMilliseconds += firstMatchingStep * stepMilliseconds;
+        currentDayOfWeek2 = addIsoDays(currentDayOfWeek2, firstMatchingStep * stepDays);
+      }
+      while (true) {
+        if (++iterationCount > this.maxIterations) {
+          throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+        }
+        if (untilMilliseconds !== void 0 && currentMilliseconds > untilMilliseconds) {
+          break;
+        }
+        if (!allowedDays || allowedDays.includes(currentDayOfWeek2)) {
+          dates.push(this.utcZdtFromEpochMilliseconds(currentMilliseconds));
+          if (this.shouldBreakForCountLimit(dates.length)) {
+            break;
+          }
+        }
+        currentMilliseconds += stepMilliseconds;
+        currentDayOfWeek2 = addIsoDays(currentDayOfWeek2, stepDays);
+      }
+      return dates;
+    }
+    const stepNanoseconds = BigInt(stepDays) * NS_PER_DAY;
+    const untilNanoseconds = (_b = this.opts.until) == null ? void 0 : _b.epochNanoseconds;
+    let currentNanoseconds = this.originalDtstart.epochNanoseconds;
+    let currentDayOfWeek = this.originalDtstart.dayOfWeek;
+    if (allowedDays == null ? void 0 : allowedDays.length) {
+      const firstMatchingStep = this.findFirstMatchingDailyStep(currentDayOfWeek, stepDays, allowedDays);
+      if (firstMatchingStep === null) {
+        return dates;
+      }
+      currentNanoseconds += BigInt(firstMatchingStep) * stepNanoseconds;
+      currentDayOfWeek = addIsoDays(currentDayOfWeek, firstMatchingStep * stepDays);
+    }
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      if (untilNanoseconds !== void 0 && currentNanoseconds > untilNanoseconds) {
+        break;
+      }
+      if (!allowedDays || allowedDays.includes(currentDayOfWeek)) {
+        dates.push(this.utcZdtFromEpochNanoseconds(currentNanoseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          break;
+        }
+      }
+      currentNanoseconds += stepNanoseconds;
+      currentDayOfWeek = addIsoDays(currentDayOfWeek, stepDays);
+    }
+    return dates;
+  }
+  _allUtcWeeklySimple() {
+    var _a, _b, _c, _d, _e;
+    const dates = [];
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    const start = this.originalDtstart;
+    const wkstToken = (_a = extractWeekdayToken(this.opts.wkst || "MO")) != null ? _a : "MO";
+    const wkstDay = (_b = weekdayToIsoDay[wkstToken]) != null ? _b : 1;
+    const targetDays = this.opts.byDay ? [...(_c = this.allByDayIsoDays) != null ? _c : []] : [start.dayOfWeek];
+    const dayOffsets = targetDays.map((day) => (day - wkstDay + 7) % 7).sort((a, b) => a - b);
+    const weekStartOffset = (start.dayOfWeek - wkstDay + 7) % 7;
+    let iterationCount = 0;
+    if (this.canUseUtcEpochMillisecondsPrecision()) {
+      const startMilliseconds = start.epochMilliseconds;
+      const untilMilliseconds = (_d = this.opts.until) == null ? void 0 : _d.epochMilliseconds;
+      const weekStepMilliseconds = this.opts.interval * MS_PER_WEEK;
+      let weekStartMilliseconds = startMilliseconds - weekStartOffset * MS_PER_DAY;
+      while (true) {
+        if (++iterationCount > this.maxIterations) {
+          throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+        }
+        for (const dayOffset of dayOffsets) {
+          const occurrenceMilliseconds = weekStartMilliseconds + dayOffset * MS_PER_DAY;
+          if (occurrenceMilliseconds < startMilliseconds) {
+            continue;
+          }
+          if (untilMilliseconds !== void 0 && occurrenceMilliseconds > untilMilliseconds) {
+            return dates;
+          }
+          dates.push(this.utcZdtFromEpochMilliseconds(occurrenceMilliseconds));
+          if (this.shouldBreakForCountLimit(dates.length)) {
+            return dates;
+          }
+        }
+        weekStartMilliseconds += weekStepMilliseconds;
+      }
+    }
+    const startNanoseconds = start.epochNanoseconds;
+    const untilNanoseconds = (_e = this.opts.until) == null ? void 0 : _e.epochNanoseconds;
+    const weekStepNanoseconds = BigInt(this.opts.interval) * NS_PER_WEEK;
+    let weekStartNanoseconds = startNanoseconds - BigInt(weekStartOffset) * NS_PER_DAY;
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      for (const dayOffset of dayOffsets) {
+        const occurrenceNanoseconds = weekStartNanoseconds + BigInt(dayOffset) * NS_PER_DAY;
+        if (occurrenceNanoseconds < startNanoseconds) {
+          continue;
+        }
+        if (untilNanoseconds !== void 0 && occurrenceNanoseconds > untilNanoseconds) {
+          return dates;
+        }
+        dates.push(this.utcZdtFromEpochNanoseconds(occurrenceNanoseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          return dates;
+        }
+      }
+      weekStartNanoseconds += weekStepNanoseconds;
+    }
+  }
+  hasSingleExpandedTimeSlot() {
+    var _a, _b, _c;
+    if (this.timeSlotOffsetsMs) {
+      return this.timeSlotOffsetsMs.length === 1;
+    }
+    const hours = (_a = this.opts.byHour) != null ? _a : [this.originalDtstart.hour];
+    const minutes = (_b = this.opts.byMinute) != null ? _b : [this.originalDtstart.minute];
+    const seconds = (_c = this.opts.bySecond) != null ? _c : [this.originalDtstart.second];
+    return hours.length === 1 && minutes.length === 1 && seconds.length === 1;
+  }
+  buildMonthlyOccurrenceOnDay(monthStart, day) {
+    const base = monthStart.day === day ? monthStart : monthStart.with({ day });
+    return this.applyTimeOverride(base);
+  }
+  applyBySetPosToSortedList(list2) {
+    const { bySetPos } = this.opts;
+    if (!bySetPos || !bySetPos.length || list2.length === 0) return list2;
+    const out = [];
+    const len = list2.length;
+    for (const pos of bySetPos) {
+      const idx = pos > 0 ? pos - 1 : len + pos;
+      if (idx >= 0 && idx < len) out.push(list2[idx]);
+    }
+    return out;
+  }
+  generateMonthlyOccurrenceDays(sample) {
+    const { byDay, byMonth, byMonthDay } = this.opts;
+    const monthStart = sample.day === 1 ? sample : sample.with({ day: 1 });
+    if (byMonth && !byMonth.includes(sample.month)) return [];
+    const lastDay = monthStart.add({ months: 1 }).subtract({ days: 1 }).day;
+    let byMonthDayHits = [];
+    if (byMonthDay && byMonthDay.length > 0) {
+      byMonthDayHits = byMonthDay.map((d) => d > 0 ? d : lastDay + d + 1).filter((d) => d >= 1 && d <= lastDay);
+      byMonthDayHits = [...new Set(byMonthDayHits)].sort((a, b) => a - b);
+    }
+    if (!byDay && byMonthDay && byMonthDay.length > 0) {
+      return byMonthDayHits;
+    }
+    if (!byDay) {
+      return [sample.day];
+    }
+    const tokens = this.parsedByDayTokens;
+    if (!(tokens == null ? void 0 : tokens.length)) return [];
+    const firstDayOfWeek = monthStart.dayOfWeek;
+    const lastDayOfWeek = (firstDayOfWeek - 1 + lastDay - 1) % 7 + 1;
+    const byDayHits = /* @__PURE__ */ new Set();
+    for (const { ord, isoDay } of tokens) {
+      if (ord === 0) {
+        let day = 1 + (isoDay - firstDayOfWeek + 7) % 7;
+        while (day <= lastDay) {
+          byDayHits.add(day);
+          day += 7;
+        }
+      } else {
+        let day;
+        if (ord > 0) {
+          day = 1 + (isoDay - firstDayOfWeek + 7) % 7 + 7 * (ord - 1);
+        } else {
+          const lastMatch = lastDay - (lastDayOfWeek - isoDay + 7) % 7;
+          day = lastMatch + 7 * (ord + 1);
+        }
+        if (day >= 1 && day <= lastDay) {
+          byDayHits.add(day);
+        }
+      }
+    }
+    let finalDays = [...byDayHits].sort((a, b) => a - b);
+    if (byMonthDay && byMonthDay.length > 0) {
+      if (byMonthDayHits.length === 0) {
+        return [];
+      }
+      const byMonthDayHitSet = new Set(byMonthDayHits);
+      finalDays = finalDays.filter((d) => byMonthDayHitSet.has(d));
+    }
+    return finalDays;
+  }
+  generateMonthlyOccurrencesOptimizedBySetPos(sample) {
+    if (!this.opts.bySetPos || !this.hasSingleExpandedTimeSlot()) {
+      return null;
+    }
+    const monthStart = sample.day === 1 ? sample : sample.with({ day: 1 });
+    const days = this.generateMonthlyOccurrenceDays(monthStart);
+    if (days.length === 0) {
+      return [];
+    }
+    const selectedDays = this.applyBySetPosToSortedList(days);
+    if (selectedDays.length === 0) {
+      return [];
+    }
+    return selectedDays.sort((a, b) => a - b).map((day) => this.buildMonthlyOccurrenceOnDay(monthStart, day));
+  }
+  isGregorianLeapYear(year) {
+    return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  }
+  daysInGregorianMonth(year, month) {
+    if (month === 2 && this.isGregorianLeapYear(year)) {
+      return 29;
+    }
+    return GREGORIAN_MONTH_LENGTHS[month - 1];
+  }
+  gregorianIsoDayOfWeek(year, month, day) {
+    let adjustedYear = year;
+    if (month < 3) adjustedYear -= 1;
+    const sundayZero = (adjustedYear + Math.floor(adjustedYear / 4) - Math.floor(adjustedYear / 100) + Math.floor(adjustedYear / 400) + GREGORIAN_WEEKDAY_OFFSETS[month - 1] + day) % 7;
+    return sundayZero === 0 ? 7 : sundayZero;
+  }
+  monthIndexToYearMonth(monthIndex) {
+    const year = Math.floor(monthIndex / 12);
+    return {
+      year,
+      month: monthIndex - year * 12 + 1
+    };
+  }
+  generateMonthlyOccurrenceDaysUtc(year, month) {
+    if (this.numericByMonths && this.numericByMonths.length > 0 && !this.numericByMonths.includes(month)) {
+      return [];
+    }
+    const byMonthDay = this.opts.byMonthDay;
+    const byDay = this.opts.byDay;
+    const lastDay = this.daysInGregorianMonth(year, month);
+    let byMonthDayHits = [];
+    if (byMonthDay && byMonthDay.length > 0) {
+      byMonthDayHits = byMonthDay.map((day) => day > 0 ? day : lastDay + day + 1).filter((day) => day >= 1 && day <= lastDay);
+      byMonthDayHits = [...new Set(byMonthDayHits)].sort((a, b) => a - b);
+    }
+    if (!byDay && byMonthDay && byMonthDay.length > 0) {
+      return byMonthDayHits;
+    }
+    if (!byDay) {
+      const day = this.originalDtstart.day;
+      return day >= 1 && day <= lastDay ? [day] : [];
+    }
+    const tokens = this.parsedByDayTokens;
+    if (!(tokens == null ? void 0 : tokens.length)) return [];
+    const firstDayOfWeek = this.gregorianIsoDayOfWeek(year, month, 1);
+    const lastDayOfWeek = addIsoDays(firstDayOfWeek, lastDay - 1);
+    const byDayHits = /* @__PURE__ */ new Set();
+    for (const { ord, isoDay } of tokens) {
+      if (ord === 0) {
+        let day = 1 + (isoDay - firstDayOfWeek + 7) % 7;
+        while (day <= lastDay) {
+          byDayHits.add(day);
+          day += 7;
+        }
+      } else {
+        let day;
+        if (ord > 0) {
+          day = 1 + (isoDay - firstDayOfWeek + 7) % 7 + 7 * (ord - 1);
+        } else {
+          const lastMatch = lastDay - (lastDayOfWeek - isoDay + 7) % 7;
+          day = lastMatch + 7 * (ord + 1);
+        }
+        if (day >= 1 && day <= lastDay) {
+          byDayHits.add(day);
+        }
+      }
+    }
+    let finalDays = [...byDayHits].sort((a, b) => a - b);
+    if (byMonthDay && byMonthDay.length > 0) {
+      if (byMonthDayHits.length === 0) return [];
+      const byMonthDayHitSet = new Set(byMonthDayHits);
+      finalDays = finalDays.filter((day) => byMonthDayHitSet.has(day));
+    }
+    return finalDays;
+  }
+  generateMonthlyOccurrenceEpochsUtc(year, month) {
+    var _a;
+    const days = this.generateMonthlyOccurrenceDaysUtc(year, month);
+    if (days.length === 0) return [];
+    const monthStartMs = Date.UTC(year, month - 1, 1, 0, 0, 0, 0);
+    const timeSlotOffsets = (_a = this.timeSlotOffsetsMs) != null ? _a : [0];
+    if (this.opts.bySetPos && this.opts.bySetPos.length > 0) {
+      if (timeSlotOffsets.length === 1) {
+        const selectedDays = this.applyBySetPosToSortedList(days).sort((a, b) => a - b);
+        const offset = timeSlotOffsets[0];
+        return selectedDays.map((day) => monthStartMs + (day - 1) * MS_PER_DAY + offset);
+      }
+      const timestamps2 = [];
+      for (const day of days) {
+        const dayBase = monthStartMs + (day - 1) * MS_PER_DAY;
+        for (const offset of timeSlotOffsets) {
+          timestamps2.push(dayBase + offset);
+        }
+      }
+      return this.applyBySetPosToSortedList(timestamps2).sort((a, b) => a - b);
+    }
+    const timestamps = [];
+    for (const day of days) {
+      const dayBase = monthStartMs + (day - 1) * MS_PER_DAY;
+      for (const offset of timeSlotOffsets) {
+        timestamps.push(dayBase + offset);
+      }
+    }
+    return timestamps;
+  }
+  _allUtcMonthlyByDayOrMonthDay() {
+    var _a;
+    const dates = [];
+    const startMilliseconds = this.originalDtstart.epochMilliseconds;
+    const untilMilliseconds = (_a = this.opts.until) == null ? void 0 : _a.epochMilliseconds;
+    let iterationCount = 0;
+    if (!this.addDtstartIfNeeded(dates)) {
+      return dates;
+    }
+    let monthIndex = this.originalDtstart.year * 12 + (this.originalDtstart.month - 1);
+    while (true) {
+      if (++iterationCount > this.maxIterations) {
+        throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
+      }
+      const { year, month } = this.monthIndexToYearMonth(monthIndex);
+      const occurrenceEpochs = this.generateMonthlyOccurrenceEpochsUtc(year, month);
+      for (const epochMilliseconds of occurrenceEpochs) {
+        if (epochMilliseconds < startMilliseconds) {
+          continue;
+        }
+        if (untilMilliseconds !== void 0 && epochMilliseconds > untilMilliseconds) {
+          return dates;
+        }
+        dates.push(this.utcZdtFromEpochMilliseconds(epochMilliseconds));
+        if (this.shouldBreakForCountLimit(dates.length)) {
+          return dates;
+        }
+      }
+      monthIndex += this.opts.interval;
+    }
+  }
   processOccurrences(occs, dates, start, iterator, extraFilters) {
     let shouldBreak = false;
     for (const occ of occs) {
@@ -33587,11 +34684,10 @@ var _RRuleTemporal = class _RRuleTemporal {
       if (++iterationCount > this.maxIterations) {
         throw new Error(`Maximum iterations (${this.maxIterations}) exceeded in all()`);
       }
-      let occs = this.generateMonthlyOccurrences(monthCursor);
-      occs = this.applyBySetPos(occs);
-      if (monthCursor.month === start.month && occs.some((o) => import_polyfill.Temporal.ZonedDateTime.compare(o, start) < 0) && occs.some((o) => import_polyfill.Temporal.ZonedDateTime.compare(o, start) === 0)) {
-        monthCursor = monthCursor.add({ months: this.opts.interval });
-        continue;
+      let occs = this.generateMonthlyOccurrencesOptimizedBySetPos(monthCursor);
+      if (!occs) {
+        occs = this.generateMonthlyOccurrences(monthCursor);
+        occs = this.applyBySetPos(occs);
       }
       const { shouldBreak } = this.processOccurrences(occs, dates, start, iterator);
       if (shouldBreak) {
@@ -33602,22 +34698,22 @@ var _RRuleTemporal = class _RRuleTemporal {
     return this.applyCountLimitAndMergeRDates(dates, iterator);
   }
   _allWeekly(iterator) {
-    var _a;
+    var _a, _b, _c;
     const dates = [];
     let iterationCount = 0;
     const start = this.originalDtstart;
     if (!this.addDtstartIfNeeded(dates, iterator)) {
       return this.applyCountLimitAndMergeRDates(dates, iterator);
     }
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    const tokens = this.opts.byDay ? [...this.opts.byDay] : this.opts.byMonthDay && this.opts.byMonthDay.length > 0 ? Object.keys(dayMap) : [Object.entries(dayMap).find(([, d]) => d === start.dayOfWeek)[0]];
-    const dows = tokens.map((tok) => dayMap[tok.slice(-2)]).filter((d) => d !== void 0).sort((a, b) => a - b);
+    const dayMap = weekdayToIsoDay;
+    const dows = this.opts.byDay ? [...(_a = this.allByDayIsoDays) != null ? _a : []] : this.opts.byMonthDay && this.opts.byMonthDay.length > 0 ? [...Object.values(dayMap)] : [start.dayOfWeek];
     const firstWeekDates = dows.map((dw) => {
       const delta = (dw - start.dayOfWeek + 7) % 7;
       return start.add({ days: delta });
     });
     const firstOccurrence = firstWeekDates.reduce((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b) <= 0 ? a : b);
-    const wkstDay = (_a = dayMap[this.opts.wkst || "MO"]) != null ? _a : 1;
+    const wkstToken = (_b = extractWeekdayToken(this.opts.wkst || "MO")) != null ? _b : "MO";
+    const wkstDay = (_c = dayMap[wkstToken]) != null ? _c : 1;
     const firstOccWeekOffset = (firstOccurrence.dayOfWeek - wkstDay + 7) % 7;
     let weekCursor = firstOccurrence.subtract({ days: firstOccWeekOffset });
     while (true) {
@@ -34015,6 +35111,10 @@ var _RRuleTemporal = class _RRuleTemporal {
     }
     if (!this.opts.count && !this.opts.until && !iterator) {
       throw new Error("all() requires iterator when no COUNT/UNTIL");
+    }
+    const utcFastPathDates = this.allUtcFastPath(iterator);
+    if (utcFastPathDates) {
+      return utcFastPathDates;
     }
     if (this.opts.freq === "MONTHLY" && (this.opts.byDay || this.opts.byMonthDay) && !this.opts.byWeekNo) {
       return this._allMonthlyByDayOrMonthDay(iterator);
@@ -34419,58 +35519,14 @@ var _RRuleTemporal = class _RRuleTemporal {
    * matching your opts.byDay and opts.byMonth (or the single "same day" if no BYDAY).
    */
   generateMonthlyOccurrences(sample) {
-    var _a;
-    const { byDay, byMonth, byMonthDay } = this.opts;
-    if (byMonth && !byMonth.includes(sample.month)) return [];
-    const lastDay = sample.with({ day: 1 }).add({ months: 1 }).subtract({ days: 1 }).day;
-    let byMonthDayHits = [];
-    if (byMonthDay && byMonthDay.length > 0) {
-      byMonthDayHits = byMonthDay.map((d) => d > 0 ? d : lastDay + d + 1).filter((d) => d >= 1 && d <= lastDay);
-    }
-    if (!byDay && byMonthDay && byMonthDay.length > 0) {
-      if (byMonthDayHits.length === 0) {
-        return [];
-      }
-      const dates = byMonthDayHits.map((d) => sample.with({ day: d }));
-      return dates.flatMap((z) => this.expandByTime(z)).sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
-    }
-    if (!byDay) {
+    const monthStart = sample.day === 1 ? sample : sample.with({ day: 1 });
+    if (!this.opts.byDay && !this.opts.byMonthDay) {
       return this.expandByTime(sample);
     }
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    const tokens = byDay.map((tok) => {
-      const m = tok.match(/^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/);
-      if (!m) return null;
-      return { ord: m[1] ? parseInt(m[1], 10) : 0, wd: dayMap[m[2]] };
-    }).filter((x) => x !== null);
-    const buckets = {};
-    let cursor = sample.with({ day: 1 });
-    while (cursor.month === sample.month) {
-      const dow = cursor.dayOfWeek;
-      (buckets[dow] || (buckets[dow] = [])).push(cursor.day);
-      cursor = cursor.add({ days: 1 });
-    }
-    const byDayHits = [];
-    for (const { ord, wd } of tokens) {
-      const list2 = (_a = buckets[wd]) != null ? _a : [];
-      if (!list2.length) continue;
-      if (ord === 0) {
-        for (const d of list2) byDayHits.push(d);
-      } else {
-        const idx = ord > 0 ? ord - 1 : list2.length + ord;
-        const dayN = list2[idx];
-        if (dayN) byDayHits.push(dayN);
-      }
-    }
-    let finalDays = byDayHits;
-    if (byMonthDay && byMonthDay.length > 0) {
-      if (byMonthDayHits.length === 0) {
-        return [];
-      }
-      finalDays = finalDays.filter((d) => byMonthDayHits.includes(d));
-    }
-    const hits = finalDays.map((d) => sample.with({ day: d }));
-    return hits.flatMap((z) => this.expandByTime(z)).sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
+    const finalDays = this.generateMonthlyOccurrenceDays(monthStart);
+    if (finalDays.length === 0) return [];
+    const hits = finalDays.map((d) => monthStart.with({ day: d }));
+    return hits.flatMap((z) => this.expandByTime(z));
   }
   /**
    * Given any date in a year, return all ZonedDateTimes in that year matching
@@ -34482,12 +35538,12 @@ var _RRuleTemporal = class _RRuleTemporal {
     let occs = [];
     const hasOrdinalByDay = this.opts.byDay && this.opts.byDay.some((t) => /^[+-]?\d/.test(t));
     if (hasOrdinalByDay && !this.opts.byMonth) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       for (const tok of this.opts.byDay) {
-        const m = tok.match(/^([+-]?\d{1,2})(MO|TU|WE|TH|FR|SA|SU)$/);
-        if (!m) continue;
-        const ord = parseInt(m[1], 10);
-        const wd = dayMap[m[2]];
+        const parsed = parseByDayToken(tok);
+        if (!parsed || parsed.ord === 0) continue;
+        const ord = parsed.ord;
+        const wd = dayMap[parsed.weekday];
         let dt;
         if (ord > 0) {
           const jan1 = sample.with({ month: 1, day: 1 });
@@ -34551,7 +35607,7 @@ var _RRuleTemporal = class _RRuleTemporal {
     return occs;
   }
   addByDay(tokens, weekStart) {
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+    const dayMap = weekdayToIsoDay;
     const wkst = dayMap[this.opts.wkst || "MO"];
     const entries = [];
     for (const tok of tokens) {
@@ -34666,12 +35722,11 @@ var _RRuleTemporal = class _RRuleTemporal {
       return current;
     }
     if (this.opts.byDay && !this.matchesByDay(current)) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-      const targetDays = this.opts.byDay.map((tok) => {
-        var _a;
-        return (_a = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a[1];
-      }).filter(Boolean).map((day) => dayMap[day]).filter(Boolean);
-      const nextDayOfWeek = this.findNextValidValue(current.dayOfWeek, targetDays.sort(), (a, b) => a - b);
+      const targetDays = this.allByDayIsoDays;
+      if (!(targetDays == null ? void 0 : targetDays.length)) {
+        return this.applyTimeOverride(current.add({ days: 1 }).with({ hour: 0, minute: 0, second: 0 }));
+      }
+      const nextDayOfWeek = this.findNextValidValue(current.dayOfWeek, targetDays, (a, b) => a - b);
       if (nextDayOfWeek) {
         const delta = (nextDayOfWeek - current.dayOfWeek + 7) % 7;
         current = current.add({ days: delta }).with({ hour: 0, minute: 0, second: 0 });
@@ -34705,17 +35760,12 @@ var _RRuleTemporal = class _RRuleTemporal {
     const { bySetPos } = this.opts;
     if (!bySetPos || !bySetPos.length) return list2;
     const sorted = [...list2].sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
-    const out = [];
-    const len = sorted.length;
-    for (const pos of bySetPos) {
-      const idx = pos > 0 ? pos - 1 : len + pos;
-      if (idx >= 0 && idx < len) out.push(sorted[idx]);
-    }
+    const out = this.applyBySetPosToSortedList(sorted);
     return out.sort((a, b) => import_polyfill.Temporal.ZonedDateTime.compare(a, b));
   }
   isoWeekByDay(sample) {
     var _a;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+    const dayMap = weekdayToIsoDay;
     const wkst = dayMap[this.opts.wkst || "MO"];
     const jan1 = sample.with({ month: 1, day: 1 });
     const jan4 = sample.with({ month: 1, day: 4 });
@@ -34723,10 +35773,7 @@ var _RRuleTemporal = class _RRuleTemporal {
     const firstWeekStart = jan4.subtract({ days: delta });
     const isLeapYear = jan1.inLeapYear;
     const lastWeek = jan1.dayOfWeek === 4 || isLeapYear && jan1.dayOfWeek === 3 ? 53 : 52;
-    const tokens = ((_a = this.opts.byDay) == null ? void 0 : _a.length) ? this.opts.byDay.map((tok) => {
-      var _a2;
-      return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-    }) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
+    const tokens = ((_a = this.opts.byDay) == null ? void 0 : _a.length) ? this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
     return { lastWeek, firstWeekStart, tokens };
   }
   /**
@@ -34844,7 +35891,7 @@ var _RRuleTemporal = class _RRuleTemporal {
   rscaleMatchesByWeekNo(calId, pd) {
     const list2 = this.opts.byWeekNo;
     if (!list2 || list2.length === 0) return true;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+    const dayMap = weekdayToIsoDay;
     const wkst = dayMap[this.opts.wkst || "MO"];
     const weekStart = pd.subtract({ days: (pd.dayOfWeek - wkst + 7) % 7 });
     const thursday = weekStart.add({ days: (4 - wkst + 7) % 7 });
@@ -34869,11 +35916,8 @@ var _RRuleTemporal = class _RRuleTemporal {
   rscaleMatchesByDayBasic(pd) {
     const byDay = this.opts.byDay;
     if (!byDay || byDay.length === 0) return true;
-    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    const tokens = byDay.map((tok) => {
-      var _a;
-      return (_a = tok.match(/^(?:[+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a[1];
-    }).filter((x) => !!x);
+    const dayMap = weekdayToIsoDay;
+    const tokens = byDay.map((tok) => extractWeekdayToken(tok)).filter((x) => x !== null);
     if (tokens.length === 0) return true;
     return tokens.some((wd) => dayMap[wd] === pd.dayOfWeek);
   }
@@ -34918,7 +35962,7 @@ var _RRuleTemporal = class _RRuleTemporal {
       }
     }
     if (byDay && byDay.length > 0) {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       const buckets = {};
       let cur = monthStart;
       while (cur.month === monthStart.month && cur.year === monthStart.year) {
@@ -34927,10 +35971,10 @@ var _RRuleTemporal = class _RRuleTemporal {
         cur = cur.add({ days: 1 });
       }
       for (const tok of byDay) {
-        const m = tok.match(/^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/);
-        if (!m) continue;
-        const ord = m[1] ? parseInt(m[1], 10) : 0;
-        const wd = dayMap[m[2]];
+        const parsed = parseByDayToken(tok);
+        if (!parsed) continue;
+        const ord = parsed.ord;
+        const wd = dayMap[parsed.weekday];
         const list2 = buckets[wd] || [];
         if (list2.length === 0) continue;
         if (ord === 0) {
@@ -34967,15 +36011,12 @@ var _RRuleTemporal = class _RRuleTemporal {
         let occs = [];
         const monthsTokens = this.opts.byMonth;
         const months = this.monthsOfYear(calId, tgtYear);
-        const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+        const dayMap = weekdayToIsoDay;
         const wkst = dayMap[this.opts.wkst || "MO"];
         if (this.opts.byWeekNo && this.opts.byWeekNo.length > 0) {
           const firstStart = this.rscaleFirstWeekStart(calId, tgtYear, wkst);
           const lastWeek = this.rscaleLastWeekCount(calId, tgtYear, wkst);
-          const tokens = ((_b = this.opts.byDay) == null ? void 0 : _b.length) ? this.opts.byDay.map((tok) => {
-            var _a2;
-            return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-          }) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
+          const tokens = ((_b = this.opts.byDay) == null ? void 0 : _b.length) ? this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
           for (const wn of this.opts.byWeekNo) {
             let idx = wn > 0 ? wn - 1 : lastWeek + wn;
             if (idx < 0 || idx >= lastWeek) continue;
@@ -35044,12 +36085,9 @@ var _RRuleTemporal = class _RRuleTemporal {
       return this.applyCountLimitAndMergeRDates(dates, iterator);
     }
     if (this.opts.freq === "WEEKLY") {
-      const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+      const dayMap = weekdayToIsoDay;
       const wkst = dayMap[this.opts.wkst || "MO"];
-      const tokens = ((_c = this.opts.byDay) == null ? void 0 : _c.length) ? this.opts.byDay.map((tok) => {
-        var _a2;
-        return (_a2 = tok.match(/(MO|TU|WE|TH|FR|SA|SU)$/)) == null ? void 0 : _a2[1];
-      }) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
+      const tokens = ((_c = this.opts.byDay) == null ? void 0 : _c.length) ? this.opts.byDay.map((tok) => extractWeekdayToken(tok)).filter((day) => day !== null) : [Object.entries(dayMap).find(([, d]) => d === this.originalDtstart.dayOfWeek)[0]];
       let weekStart = seed.toPlainDate().subtract({ days: (seed.dayOfWeek - wkst + 7) % 7 });
       while (true) {
         if (++iterationCount > this.maxIterations) {
@@ -35707,6 +36745,11 @@ var LOCALES = {};
 for (const l of active) {
   if (ALL_LOCALES[l]) LOCALES[l] = ALL_LOCALES[l];
 }
+var workweekWeekdays = allowedWeekdays.slice(0, 5);
+var byDayTokenRegex2 = new RegExp(`^([+-]?\\d+)?(${allowedWeekdays.join("|")})$`);
+var weekdayIndexByToken = Object.fromEntries(
+  allowedWeekdays.map((weekday, idx) => [weekday, idx])
+);
 function defaultOrdinal(n) {
   const abs = Math.abs(n);
   const suffix = abs % 10 === 1 && abs % 100 !== 11 ? "st" : abs % 10 === 2 && abs % 100 !== 12 ? "nd" : abs % 10 === 3 && abs % 100 !== 13 ? "rd" : "th";
@@ -35722,19 +36765,11 @@ function list(arr, mapFn = (x) => `${x}`, final) {
 }
 function formatByDayToken(tok, locale) {
   if (typeof tok === "number") return tok.toString();
-  const m = tok.match(/^([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)$/);
+  const m = tok.toUpperCase().match(byDayTokenRegex2);
   if (!m) return tok;
   const ord = m[1] ? parseInt(m[1], 10) : 0;
-  const weekdayMap = {
-    MO: 0,
-    TU: 1,
-    WE: 2,
-    TH: 3,
-    FR: 4,
-    SA: 5,
-    SU: 6
-  };
-  const idx = weekdayMap[m[2]];
+  const weekday = m[2];
+  const idx = weekdayIndexByToken[weekday];
   const name = locale.weekdayNames[idx];
   if (ord === 0) return name;
   if (ord === -1) return `${locale.words.last} ${name}`;
@@ -35754,8 +36789,7 @@ function formatTime(hour, minute = 0, second = 0) {
   return `${hr12} ${ampm}`;
 }
 function weekdayTokenFromZdt(zdt) {
-  const tokens = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
-  return tokens[zdt.dayOfWeek - 1];
+  return allowedWeekdays[zdt.dayOfWeek - 1];
 }
 function tzAbbreviation(zdt) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -35818,8 +36852,8 @@ function toText(input, locale, options = {}) {
   }[freq];
   const base = data.units[baseKey];
   const daysNormalized = textByDay == null ? void 0 : textByDay.map((d) => d.toUpperCase());
-  const isWeekdays = daysNormalized && daysNormalized.length === 5 && ["MO", "TU", "WE", "TH", "FR"].every((d) => daysNormalized.includes(d));
-  const isEveryday = daysNormalized && daysNormalized.length === 7 && ["MO", "TU", "WE", "TH", "FR", "SA", "SU"].every((d) => daysNormalized.includes(d));
+  const isWeekdays = daysNormalized && daysNormalized.length === workweekWeekdays.length && workweekWeekdays.every((d) => daysNormalized.includes(d));
+  const isEveryday = daysNormalized && daysNormalized.length === allowedWeekdays.length && allowedWeekdays.every((d) => daysNormalized.includes(d));
   if (freq === "WEEKLY" && interval === 1 && isWeekdays) {
     parts.push(data.words.weekday);
   } else if (freq === "WEEKLY" && interval === 1 && isEveryday) {
