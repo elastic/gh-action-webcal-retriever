@@ -15,7 +15,7 @@
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/minimatch": "^6.0.0",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "@vercel/ncc": "^0.36.1",
     "jest": "^30.3.0",
     "typescript": "^6.0.2"
