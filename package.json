@@ -9,14 +9,14 @@
     "@actions/core": "^3.0.0",
     "@actions/github": "9.0.0",
     "date-and-time": "^4.4.0",
-    "node-ical": "^0.25.6"
+    "node-ical": "^0.26.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/minimatch": "^6.0.0",
     "@types/node": "^25.5.2",
-    "@vercel/ncc": "^0.36.1",
+    "@vercel/ncc": "^0.38.4",
     "jest": "^30.3.0",
     "typescript": "^6.0.2"
   },
