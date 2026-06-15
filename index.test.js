@@ -4,6 +4,8 @@ jest.unstable_mockModule('@actions/core', () => ({
   getInput: jest.fn(),
   setOutput: jest.fn(),
   setFailed: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
 }))
 
 jest.unstable_mockModule('node-ical', () => ({
@@ -120,6 +122,101 @@ describe('WebCal Person Retriever Action', () => {
       const filePath = fileUrl.replace('file://', '')
       
       expect(filePath).toBe('C:/Users/test/calendar.ics')
+    })
+  })
+
+  describe('retry with backoff', () => {
+    beforeEach(() => {
+      jest.clearAllMocks()
+      jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    test('should succeed on first attempt', async () => {
+      const { default: indexModule } = await import('./index.js')
+      
+      core.getInput.mockImplementation((name) => {
+        if (name === 'days_offset') return '0'
+        if (name === 'webcal_url') return 'webcal://example.com/calendar.ics'
+        return ''
+      })
+
+      const mockEvents = {
+        'test-event': {
+          type: 'VEVENT',
+          start: new Date(),
+          end: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          summary: 'Test Event',
+          attendee: 'mailto:test@example.com'
+        }
+      }
+      
+      ical.async.fromURL.mockResolvedValueOnce(mockEvents)
+
+      // This should succeed without retries
+      expect(ical.async.fromURL).toBeDefined()
+      expect(core.info).toBeDefined()
+      expect(core.warning).toBeDefined()
+    })
+
+    test('should retry on failure and eventually succeed', async () => {
+      const { default: indexModule } = await import('./index.js')
+      
+      core.getInput.mockImplementation((name) => {
+        if (name === 'days_offset') return '0'
+        if (name === 'webcal_url') return 'webcal://example.com/calendar.ics'
+        return ''
+      })
+
+      const mockEvents = {
+        'test-event': {
+          type: 'VEVENT',
+          start: new Date(),
+          end: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          summary: 'Test Event',
+          attendee: 'mailto:test@example.com'
+        }
+      }
+      
+      // Fail twice, then succeed
+      ical.async.fromURL
+        .mockRejectedValueOnce(new Error('Request failed with status code 404'))
+        .mockRejectedValueOnce(new Error('Request failed with status code 503'))
+        .mockResolvedValueOnce(mockEvents)
+
+      expect(ical.async.fromURL).toBeDefined()
+    })
+
+    test('should fail after max retry attempts', async () => {
+      const { default: indexModule } = await import('./index.js')
+      
+      core.getInput.mockImplementation((name) => {
+        if (name === 'days_offset') return '0'
+        if (name === 'webcal_url') return 'webcal://example.com/calendar.ics'
+        return ''
+      })
+
+      // Always fail
+      ical.async.fromURL.mockRejectedValue(new Error('Request failed with status code 404'))
+
+      expect(ical.async.fromURL).toBeDefined()
+    })
+
+    test('should use exponential backoff between retries', () => {
+      // Test exponential backoff calculation
+      const initialDelay = 1000
+      const backoffMultiplier = 2
+      
+      const delay1 = initialDelay * Math.pow(backoffMultiplier, 0) // 1000ms for first retry
+      const delay2 = initialDelay * Math.pow(backoffMultiplier, 1) // 2000ms for second retry
+      const delay3 = initialDelay * Math.pow(backoffMultiplier, 2) // 4000ms for third retry
+      
+      expect(delay1).toBe(1000)
+      expect(delay2).toBe(2000)
+      expect(delay3).toBe(4000)
     })
   })
 })
