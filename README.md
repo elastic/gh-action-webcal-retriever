@@ -7,6 +7,10 @@
 GitHub Action that reads the attendee for current date from a webcal
 <!--/description-->
 
+## Features
+
+- **Automatic Retry with Backoff**: The action automatically retries failed HTTP requests up to 3 times with exponential backoff (1s, 2s, 4s delays) to handle transient network errors.
+
 ## Inputs
 <!--inputs-->
 | Name                    | Description                                                              | Required | Default |
