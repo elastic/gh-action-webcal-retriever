@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   check-dist:
     uses: actions/reusable-workflows/.github/workflows/check-dist.yml@main

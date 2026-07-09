@@ -5,6 +5,9 @@ on:
     branches:
       - "dependabot/npm_and_yarn/**"
 
+permissions:
+  contents: read
+
 jobs:
   update-dist:
     permissions:
