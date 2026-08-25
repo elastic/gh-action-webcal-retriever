@@ -9,16 +9,16 @@
     "@actions/core": "^3.0.1",
     "@actions/github": "9.1.1",
     "date-and-time": "^4.5.1",
-    "node-ical": "^0.26.1"
+    "node-ical": "^0.27.1"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/minimatch": "^6.0.0",
-    "@types/node": "^26.0.1",
+    "@types/node": "^26.2.0",
     "@vercel/ncc": "^0.44.1",
     "jest": "^30.4.2",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "scripts": {
     "build": "ncc -m -o dist build index.js",
